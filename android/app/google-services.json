@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "983976699627",
+    "project_id": "quran-app-5a53c",
+    "storage_bucket": "quran-app-5a53c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:983976699627:android:8c711be83a742f39ef00ae",
+        "android_client_info": {
+          "package_name": "com.rehana.mo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmVQgJ4_1d8vvHFFd0Cf4blPnnok1_0kQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
