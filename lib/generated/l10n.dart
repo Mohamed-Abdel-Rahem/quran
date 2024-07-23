@@ -50,11 +50,21 @@ class S {
     return Localizations.of<S>(context, S);
   }
 
-  /// `Quran Kareem`
+  /// `Quran`
   String get title {
     return Intl.message(
-      'Quran Kareem',
+      'Quran',
       name: 'title',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Kareem`
+  String get subTitle {
+    return Intl.message(
+      'Kareem',
+      name: 'subTitle',
       desc: '',
       args: [],
     );

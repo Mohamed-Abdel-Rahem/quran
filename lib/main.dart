@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/intl.dart';
 import 'package:quran/generated/l10n.dart';
 import 'package:quran/screens/home_view.dart';
 
@@ -28,4 +29,8 @@ class QuranApp extends StatelessWidget {
       home: HomeView(),
     );
   }
+}
+
+bool isArabic() {
+  return Intl.getCurrentLocale() == 'ar';
 }
