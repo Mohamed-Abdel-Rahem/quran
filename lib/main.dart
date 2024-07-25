@@ -1,3 +1,4 @@
+import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -6,9 +7,10 @@ import 'package:quran/generated/l10n.dart';
 import 'package:quran/screens/quran_page.dart';
 
 void main() {
-  runApp(
-    const QuranApp(),
-  );
+  runApp(DevicePreview(
+      enabled: true,
+      tools: const [...DevicePreview.defaultTools],
+      builder: (context) => const QuranApp()));
 }
 
 class QuranApp extends StatelessWidget {

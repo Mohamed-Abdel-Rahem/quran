@@ -32,7 +32,7 @@ class _CusotmBottomNavigationBarState extends State<CusotmBottomNavigationBar> {
             Icons.home,
             color: Colors.white,
           ),
-          label: 'القران لكريم',
+          label: 'القران الكريم',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.search),
