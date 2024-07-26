@@ -22,7 +22,6 @@ class _CusotmBottomNavigationBarState extends State<CusotmBottomNavigationBar> {
     return SizedBox(
       child: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: ImageIcon(

@@ -40,6 +40,7 @@ dependencies:
   flutter_localizations:
         sdk: flutter
   device_preview: ^1.2.0
+  flutter_snake_navigationbar: ^0.6.1
 
 dev_dependencies:
   flutter_test:
