@@ -108,11 +108,9 @@ class QuranPage extends StatelessWidget {
               ],
             ),
           ),
-          Align(
-              alignment: Alignment.bottomCenter,
-              child: CusotmBottomNavigationBar()),
         ],
       ),
+      bottomNavigationBar: CusotmBottomNavigationBar(),
     );
   }
 }
