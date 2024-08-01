@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:quran/widgets/custom_text_widget.dart';
 
 class CustomContainer extends StatelessWidget {
   final String text;
@@ -25,25 +24,32 @@ class CustomContainer extends StatelessWidget {
             height: MediaQuery.of(context).size.width *
                 0.4, // Adjust height to maintain aspect ratio
             decoration: BoxDecoration(
+              border: Border.all(
+                color: const Color(0xff659F7C),
+                width: 1.0, // Adjust the width as needed
+              ),
               borderRadius: BorderRadius.circular(19),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(19),
-              child: Image.asset(
-                image, // Replace with your image asset path
-                fit: BoxFit.cover,
-              ),
-            ),
+                borderRadius: BorderRadius.circular(19),
+                child: Column(
+                  children: [
+                    Image.asset(
+                      image, // Replace with your image asset path
+                      fit: BoxFit.cover,
+                    ),
+                    Text(
+                      text,
+                      style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          fontFamily: 'Tajawal',
+                          color: Colors.white),
+                    )
+                  ],
+                )),
           ),
-          const SizedBox(height: 2), // Space between image and text
-          Text(
-            text,
-            style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                fontFamily: 'Tajawal',
-                color: Colors.white),
-          )
+          // Space between image and text
         ],
       ),
     );
