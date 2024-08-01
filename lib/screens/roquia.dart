@@ -29,7 +29,7 @@ class RoquiaPage extends StatelessWidget {
             child: Column(
               children: [
                 SizedBox(height: screenSize.height * 0.09),
-                Row(
+                const Row(
                   children: [
                     CustomTextWidget(
                       text: 'الرقيه الشرعيه',
