@@ -4,6 +4,7 @@ class CustomButtonRow extends StatefulWidget {
   const CustomButtonRow({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _CustomButtonRowState createState() => _CustomButtonRowState();
 }
 
@@ -32,6 +33,7 @@ class _CustomButtonRowState extends State<CustomButtonRow> {
           _selectedButton = text;
         });
       },
+      // ignore: sort_child_properties_last
       child: Text(
         text,
         style: TextStyle(
@@ -44,9 +46,10 @@ class _CustomButtonRowState extends State<CustomButtonRow> {
         textAlign: TextAlign.center,
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: isSelected ? Colors.white : Color(0xff2F3B3C),
+        backgroundColor: isSelected ? Colors.white : const Color(0xff2F3B3C),
         side: BorderSide(
-            color: isSelected ? Colors.white : Color(0xff2F3B3C), width: 2.0),
+            color: isSelected ? Colors.white : const Color(0xff2F3B3C),
+            width: 2.0),
         padding: const EdgeInsets.symmetric(
           horizontal: 30,
           vertical: 10,

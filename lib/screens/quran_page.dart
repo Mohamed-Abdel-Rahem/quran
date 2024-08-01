@@ -98,10 +98,10 @@ class QuranPage extends StatelessWidget {
                   shrinkWrap:
                       true, // Ensures the list takes only the required height
                   physics:
-                      NeverScrollableScrollPhysics(), // Disables separate scrolling for the list
+                      const NeverScrollableScrollPhysics(), // Disables separate scrolling for the list
                   itemCount: 20,
                   itemBuilder: (context, index) {
-                    return CustomListTile();
+                    return const CustomListTile();
                   },
                 ),
               ],

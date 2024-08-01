@@ -13,18 +13,23 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int selectedIndex = 0;
-  List<Widget> tabs = [QuranPage(), RoquiaPage(), MotonPage(), MorePage()];
+  List<Widget> tabs = [
+    const QuranPage(),
+    const RoquiaPage(),
+    const MotonPage(),
+    const MorePage()
+  ];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
       bottomNavigationBar: ClipRRect(
-        borderRadius: BorderRadius.only(
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(8.0),
           topRight: Radius.circular(8.0),
         ),
         child: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: Color(0xff072730),
           ),
           child: BottomNavigationBar(
@@ -35,28 +40,28 @@ class _HomePageState extends State<HomePage> {
             items: <BottomNavigationBarItem>[
               BottomNavigationBarItem(
                 icon: ImageIcon(
-                  AssetImage('assets/icons/quran.png'),
+                  const AssetImage('assets/icons/quran.png'),
                   color: selectedIndex == 0 ? Colors.white : Colors.grey,
                 ),
                 label: 'القران الكريم',
               ),
               BottomNavigationBarItem(
                 icon: ImageIcon(
-                  AssetImage('assets/icons/ruqia.png'),
+                  const AssetImage('assets/icons/ruqia.png'),
                   color: selectedIndex == 1 ? Colors.white : Colors.grey,
                 ),
                 label: 'الرقيه الشرعيه',
               ),
               BottomNavigationBarItem(
                 icon: ImageIcon(
-                  AssetImage('assets/icons/quran.png'),
+                  const AssetImage('assets/icons/quran.png'),
                   color: selectedIndex == 2 ? Colors.white : Colors.grey,
                 ),
                 label: 'المتون',
               ),
               BottomNavigationBarItem(
                 icon: ImageIcon(
-                  AssetImage('assets/icons/more.png'),
+                  const AssetImage('assets/icons/more.png'),
                   color: selectedIndex == 3 ? Colors.white : Colors.grey,
                 ),
                 label: 'المزيد',
@@ -64,8 +69,8 @@ class _HomePageState extends State<HomePage> {
             ],
             currentIndex: selectedIndex,
             selectedItemColor: Colors.white,
-            selectedLabelStyle: TextStyle(color: Colors.white),
-            unselectedLabelStyle: TextStyle(color: Colors.grey),
+            selectedLabelStyle: const TextStyle(color: Colors.white),
+            unselectedLabelStyle: const TextStyle(color: Colors.grey),
             unselectedItemColor: Colors.grey,
             selectedFontSize: 15,
             unselectedFontSize: 15,

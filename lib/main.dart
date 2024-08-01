@@ -19,7 +19,7 @@ class QuranApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      locale: Locale('ar'),
+      locale: const Locale('ar'),
       theme: ThemeData(
         primarySwatch: Colors.blue,
         useMaterial3: false,
@@ -31,7 +31,7 @@ class QuranApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: S.delegate.supportedLocales,
-      home: HomePage(),
+      home: const HomePage(),
     );
   }
 }

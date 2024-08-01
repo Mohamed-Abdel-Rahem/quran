@@ -8,13 +8,13 @@ class CustomTextWidget extends StatelessWidget {
   final String fontFamily;
 
   const CustomTextWidget({
-    Key? key,
+    super.key,
     required this.text,
     required this.fontSize,
     required this.fontWeight,
     this.color,
     this.fontFamily = 'Tajawal',
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

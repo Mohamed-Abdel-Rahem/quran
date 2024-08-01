@@ -20,7 +20,7 @@ class CustomListTile extends StatelessWidget {
             color: const Color.fromARGB(255, 175, 173, 173),
             width: 1.0,
           ),
-          color: Color(0x0affffff),
+          color: const Color(0x0affffff),
           borderRadius: BorderRadius.circular(15),
         ),
         child: Center(
