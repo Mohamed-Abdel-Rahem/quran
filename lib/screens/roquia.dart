@@ -22,9 +22,7 @@ class RoquiaPage extends StatelessWidget {
               height: screenSize.width * 1.1,
             ),
           ),
-
           // content
-
           SingleChildScrollView(
             child: Column(
               children: [
