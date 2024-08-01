@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:quran/generated/l10n.dart';
+import 'package:quran/screens/home_page.dart';
 import 'package:quran/screens/quran_page.dart';
 
 void main() {
@@ -31,7 +32,7 @@ class QuranApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: S.delegate.supportedLocales,
-      home: QuranPage(),
+      home: HomePage(),
     );
   }
 }

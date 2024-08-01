@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:quran/widgets/backgroun_build.dart';
-import 'package:quran/widgets/custom_bottom_bar.dart';
-import 'dart:ui'; // Import this for the ImageFilter class
 import 'package:quran/widgets/custom_list_tile.dart';
 import 'package:quran/widgets/custom_text_widget.dart';
 import 'package:quran/widgets/row_chooser.dart';
@@ -13,6 +11,7 @@ class QuranPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           const BackgrounBuild(),
@@ -110,7 +109,6 @@ class QuranPage extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: CusotmBottomNavigationBar(),
     );
   }
 }
