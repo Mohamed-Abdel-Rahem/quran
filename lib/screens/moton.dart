@@ -3,8 +3,8 @@ import 'package:quran/widgets/backgroun_build.dart';
 import 'package:quran/widgets/custom_container.dart';
 import 'package:quran/widgets/custom_text_widget.dart';
 
-class MtonPage extends StatelessWidget {
-  const MtonPage({super.key});
+class MotonPage extends StatelessWidget {
+  const MotonPage({super.key});
 
   @override
   Widget build(BuildContext context) {

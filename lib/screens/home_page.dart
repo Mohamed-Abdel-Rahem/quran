@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:quran/screens/more_page.dart';
-import 'package:quran/screens/mton.dart';
+import 'package:quran/screens/moton.dart';
 import 'package:quran/screens/quran_page.dart';
 import 'package:quran/screens/roquia.dart';
 
@@ -13,7 +13,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int selectedIndex = 0;
-  List<Widget> tabs = [QuranPage(), RoquiaPage(), MtonPage(), MorePage()];
+  List<Widget> tabs = [QuranPage(), RoquiaPage(), MotonPage(), MorePage()];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
