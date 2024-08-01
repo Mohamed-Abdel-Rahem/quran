@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quran/widgets/custom_text_widget.dart';
 
 class CustomContainer extends StatelessWidget {
   final String text;
@@ -21,8 +22,7 @@ class CustomContainer extends StatelessWidget {
         children: [
           Container(
             width: double.infinity,
-            height: MediaQuery.of(context).size.width *
-                0.4, // Adjust height to maintain aspect ratio
+            // Adjust height to maintain aspect ratio
             decoration: BoxDecoration(
               border: Border.all(
                 color: const Color(0xff659F7C),

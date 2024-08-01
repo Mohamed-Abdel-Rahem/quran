@@ -43,20 +43,18 @@ class MotonPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         const Expanded(
-                          child: CustomContainer(
-                            text: 'متن تحفة الأطفال',
-                            image: 'assets/images/child.png',
-                          ),
-                        ),
+                            child: CustomContainer(
+                          text: 'متن تحفة الأطفال',
+                          image: 'assets/images/child.png',
+                        )),
                         SizedBox(
                           width: screenSize.width * 0.05,
                         ), // Space between the two containers
                         const Expanded(
-                          child: CustomContainer(
-                            text: 'متن الجزرية',
-                            image: 'assets/images/elge.png',
-                          ),
-                        ),
+                            child: CustomContainer(
+                          text: 'متن الجزرية',
+                          image: 'assets/images/elge.png',
+                        )),
                       ],
                     ),
                   ),
