@@ -13,32 +13,63 @@ class CustomListTile extends StatelessWidget {
         horizontal: screenSize.width * 0.05,
       ),
       child: Container(
-        width: 398,
-        height: 90,
+        width: screenSize.width * 0.9,
+        height: screenSize.height * 0.1,
         decoration: BoxDecoration(
           border: Border.all(
             color: const Color.fromARGB(255, 175, 173, 173),
-            width: 1.0, // Adjust the width as needed
+            width: 1.0,
           ),
           color: Color(0x0affffff),
           borderRadius: BorderRadius.circular(15),
         ),
         child: Center(
           child: ListTile(
-            title: const CustomTextWidget(
+            title: CustomTextWidget(
               text: 'اسم السورة',
-              fontSize: 24,
+              fontSize: screenSize.width * 0.06,
               fontWeight: FontWeight.w400,
             ),
-            subtitle: const CustomTextWidget(
+            subtitle: CustomTextWidget(
               text: 'مكية - عدد الآيات (90)',
-              fontSize: 14,
+              fontSize: screenSize.width * 0.035,
               fontWeight: FontWeight.w400,
               color: Colors.white,
             ),
-            trailing: IconButton(
-              icon: const Icon(Icons.bookmark_border, color: Colors.white),
-              onPressed: () {},
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    Icons.bookmark_border,
+                    color: Colors.white,
+                    size: screenSize.width * 0.05,
+                  ),
+                  onPressed: () {
+                    // Add your bookmark action here
+                  },
+                ),
+                SizedBox(
+                    width: screenSize.width * 0.02), // Spacing between icons
+                Container(
+                  width: screenSize.width * 0.1,
+                  height: screenSize.width * 0.1,
+                  decoration: const BoxDecoration(
+                    color: Colors.green,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.play_arrow,
+                      color: Colors.white,
+                      size: screenSize.width * 0.05,
+                    ),
+                    onPressed: () {
+                      // Add your play icon action here
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ),
