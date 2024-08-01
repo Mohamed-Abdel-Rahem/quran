@@ -36,11 +36,14 @@ class CustomContainer extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 2), // Space between image and text
-          CustomTextWidget(
-            text: text,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
+          Text(
+            text,
+            style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'Tajawal',
+                color: Colors.white),
+          )
         ],
       ),
     );
