@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quran/screens/developer_.dart';
 import 'package:quran/screens/reader_page.dart';
 import 'package:quran/widgets/backgroun_build.dart';
 import 'package:quran/widgets/custom_text_widget.dart';
@@ -11,6 +12,7 @@ class MorePage extends StatelessWidget {
     final screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           const BackgrounBuild(),
@@ -140,45 +142,64 @@ class MorePage extends StatelessWidget {
                 Padding(
                   padding:
                       EdgeInsets.symmetric(horizontal: screenSize.width * 0.03),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: screenSize.width * 0.03,
-                        vertical: screenSize.width * 0.04),
-                    decoration: BoxDecoration(
-                      color: const Color(
-                          0xff222D2E), // Set the background color here
-                      borderRadius:
-                          BorderRadius.circular(16.0), // Rounded corners
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.error_outline,
-                              color: Colors.white),
-                          onPressed: () {
-                            // Add your info button action here
-                          },
-                        ),
-                        const Text(
-                          'عن المطورين',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              fontFamily: 'Tajawal'),
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.arrow_right,
-                            color: Colors.white,
-                            size: 40,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const DeveloperPage()),
+                      );
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: screenSize.width * 0.03,
+                          vertical: screenSize.width * 0.04),
+                      decoration: BoxDecoration(
+                        color: const Color(
+                            0xff222D2E), // Set the background color here
+                        borderRadius:
+                            BorderRadius.circular(16.0), // Rounded corners
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.error_outline,
+                                color: Colors.white),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        const DeveloperPage()),
+                              );
+                            },
                           ),
-                          onPressed: () {
-                            // Add your back button action here
-                          },
-                        ),
-                      ],
+                          const Text(
+                            'عن المطور',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                fontFamily: 'Tajawal'),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.arrow_right,
+                              color: Colors.white,
+                              size: 33,
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        const DeveloperPage()),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 )

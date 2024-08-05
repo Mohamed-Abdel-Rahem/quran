@@ -41,6 +41,10 @@ dependencies:
         sdk: flutter
   device_preview: ^1.2.0
   flutter_snake_navigationbar: ^0.6.1
+  url_launcher: ^6.3.0
+  mailto: ^2.0.0
+  whatsapp_unilink: ^2.1.0
+  flutter_easyloading: ^3.0.5
 
 dev_dependencies:
   flutter_test:

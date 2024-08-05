@@ -10,6 +10,7 @@ class MotonPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           const BackgrounBuild(),

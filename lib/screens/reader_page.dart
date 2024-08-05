@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 class ReaderDetailsPage extends StatelessWidget {
   const ReaderDetailsPage({super.key});
-
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
@@ -24,7 +23,13 @@ class ReaderDetailsPage extends StatelessWidget {
             },
           ),
         ],
-        title: const Text('عن القارئ', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'عن القارئ',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         centerTitle: true,
       ),
       body: Padding(
@@ -72,30 +77,6 @@ class ReaderDetailsPage extends StatelessWidget {
                 style: TextStyle(
                     color: Colors.white, fontSize: 20.0, fontFamily: 'Tajawal'),
                 textAlign: TextAlign.right,
-              ),
-              SizedBox(height: screenSize.width * 0.06),
-              Container(
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: Colors.black12,
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.email,
-                      color: Colors.white,
-                    ),
-                    SizedBox(width: screenSize.width * 0.03),
-                    const Text(
-                      'gmail.com@............',
-                      style: TextStyle(
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
