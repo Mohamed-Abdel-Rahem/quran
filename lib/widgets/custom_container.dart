@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:quran/widgets/custom_text_widget.dart';
 
 class CustomContainer extends StatelessWidget {
   final String text;
