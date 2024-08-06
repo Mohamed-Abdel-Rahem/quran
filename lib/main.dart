@@ -8,13 +8,12 @@ import 'package:quran/generated/l10n.dart';
 import 'package:quran/screens/home_page.dart';
 
 void main() {
-  runApp(QuranApp());
-}
-
-/*runApp(DevicePreview(
+  runApp(DevicePreview(
       enabled: true,
       tools: const [...DevicePreview.defaultTools],
-      builder: (context) => const QuranApp()));*/
+      builder: (context) => const QuranApp()));
+}
+
 class QuranApp extends StatelessWidget {
   const QuranApp({super.key});
 

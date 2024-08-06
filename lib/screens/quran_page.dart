@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quran/screens/sura_play.dart';
 import 'package:quran/widgets/backgroun_build.dart';
 import 'package:quran/widgets/custom_list_tile.dart';
 import 'package:quran/widgets/custom_text_widget.dart';
@@ -94,15 +95,23 @@ class QuranPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 const CustomButtonRow(),
-                ListView.builder(
-                  shrinkWrap:
-                      true, // Ensures the list takes only the required height
-                  physics:
-                      const NeverScrollableScrollPhysics(), // Disables separate scrolling for the list
-                  itemCount: 20,
-                  itemBuilder: (context, index) {
-                    return const CustomListTile();
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SuraPlay()),
+                    );
                   },
+                  child: ListView.builder(
+                    shrinkWrap:
+                        true, // Ensures the list takes only the required height
+                    physics:
+                        const NeverScrollableScrollPhysics(), // Disables separate scrolling for the list
+                    itemCount: 20,
+                    itemBuilder: (context, index) {
+                      return const CustomListTile();
+                    },
+                  ),
                 ),
               ],
             ),

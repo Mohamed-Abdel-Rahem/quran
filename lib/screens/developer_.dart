@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:quran/services/email_services.dart';
-import 'package:quran/services/whatsapp_services.dart';
 import 'package:quran/widgets/connect_widget.dart';
 import 'package:quran/widgets/custom_text_widget.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class DeveloperPage extends StatefulWidget {
+class DeveloperPage extends StatelessWidget {
   const DeveloperPage({super.key});
+  void launcherWhatsapp({
+    required String phoneNumber,
+    required String messageContent,
+  }) async {
+    String url = "whatsapp://send?phone=$phoneNumber&text=$messageContent";
+    Uri uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      print('Cannot be launched');
+    }
+  }
 
-  @override
-  State<DeveloperPage> createState() => _DeveloperPageState();
-}
-
-class _DeveloperPageState extends State<DeveloperPage> {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
@@ -88,7 +95,8 @@ class _DeveloperPageState extends State<DeveloperPage> {
               SizedBox(height: screenSize.width * 0.06),
               ConnectWidget(
                 onTap: () {
-                  funcOpenWhatsApp();
+                  launcherWhatsapp(
+                      phoneNumber: "+201152619144", messageContent: 'hello');
                 },
                 icon: Icons.call,
                 text: 'Whatsapp and Call : (+20) 01152619144 ',
