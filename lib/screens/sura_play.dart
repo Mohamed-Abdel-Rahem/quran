@@ -70,7 +70,7 @@ class _SuraPlayState extends State<SuraPlay> {
         _playAudio();
       }
     } catch (e) {
-      print('Error fetching audio URL: $e');
+      print('Error fetching  URL: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
