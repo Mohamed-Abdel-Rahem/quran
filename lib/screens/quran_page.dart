@@ -1,16 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:quran/firebase/services/list_of_quran.dart';
 import 'package:quran/screens/sura_play.dart';
 import 'package:quran/widgets/backgroun_build.dart';
 import 'package:quran/widgets/custom_list_tile.dart';
 import 'package:quran/widgets/custom_text_widget.dart';
 import 'package:quran/widgets/row_chooser.dart';
 
-class QuranPage extends StatelessWidget {
-  const QuranPage({super.key});
+class QuranPage extends StatefulWidget {
+  QuranPage({super.key});
+
+  @override
+  State<QuranPage> createState() => _QuranPageState();
+}
+
+class _QuranPageState extends State<QuranPage> {
+  String searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
+
+    // Filter surahs based on the search query
+    List<Map<String, dynamic>> filteredSurahs = surahs.where((sura) {
+      return sura['nameArabic']
+              .toLowerCase()
+              .contains(searchQuery.toLowerCase()) ||
+          sura['nameEnglish'].toLowerCase().contains(searchQuery.toLowerCase());
+    }).toList();
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -25,7 +42,6 @@ class QuranPage extends StatelessWidget {
               height: screenSize.width * 1.1,
             ),
           ),
-          // Content
           SingleChildScrollView(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -53,8 +69,7 @@ class QuranPage extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(
-                    height: 20), // Add some space between texts and row
+                const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -72,10 +87,15 @@ class QuranPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8.0),
                         border: Border.all(
                           color: const Color.fromARGB(255, 175, 173, 173),
-                          width: 1.0, // Adjust the width as needed
+                          width: 1.0,
                         ),
                       ),
                       child: TextField(
+                        onChanged: (value) {
+                          setState(() {
+                            searchQuery = value;
+                          });
+                        },
                         style: const TextStyle(
                           color: Colors.white,
                         ),
@@ -95,23 +115,29 @@ class QuranPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 const CustomButtonRow(),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const SuraPlay()),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: filteredSurahs.length,
+                  itemBuilder: (context, index) {
+                    final sura = filteredSurahs[index];
+                    return CustomListTile(
+                      suraName: sura['nameArabic'],
+                      numberOfAyahs: sura['numberOfAyahs'],
+                      type: sura['type'],
+                      onPlay: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SuraPlay(
+                              surahName:
+                                  '${sura['nameArabic']}', // Ensure this matches your file naming convention
+                            ),
+                          ),
+                        );
+                      },
                     );
                   },
-                  child: ListView.builder(
-                    shrinkWrap:
-                        true, // Ensures the list takes only the required height
-                    physics:
-                        const NeverScrollableScrollPhysics(), // Disables separate scrolling for the list
-                    itemCount: 20,
-                    itemBuilder: (context, index) {
-                      return const CustomListTile();
-                    },
-                  ),
                 ),
               ],
             ),

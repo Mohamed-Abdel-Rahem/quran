@@ -14,7 +14,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int selectedIndex = 0;
   List<Widget> tabs = [
-    const QuranPage(),
+    QuranPage(),
     const RoquiaPage(),
     const MotonPage(),
     const MorePage()

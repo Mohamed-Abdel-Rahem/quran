@@ -2,7 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:quran/widgets/custom_text_widget.dart';
 
 class CustomListTile extends StatelessWidget {
-  const CustomListTile({super.key});
+  final String suraName;
+  final int numberOfAyahs;
+  final String type;
+  final VoidCallback onPlay;
+
+  const CustomListTile({
+    Key? key,
+    required this.suraName,
+    required this.numberOfAyahs,
+    required this.type,
+    required this.onPlay,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -26,12 +37,12 @@ class CustomListTile extends StatelessWidget {
         child: Center(
           child: ListTile(
             title: CustomTextWidget(
-              text: 'اسم السورة',
+              text: suraName,
               fontSize: screenSize.width * 0.06,
               fontWeight: FontWeight.w400,
             ),
             subtitle: CustomTextWidget(
-              text: 'مكية - عدد الآيات (90)',
+              text: '$type - عدد الآيات ($numberOfAyahs)',
               fontSize: screenSize.width * 0.035,
               fontWeight: FontWeight.w400,
               color: Colors.white,
@@ -64,9 +75,7 @@ class CustomListTile extends StatelessWidget {
                       color: Colors.white,
                       size: screenSize.width * 0.05,
                     ),
-                    onPressed: () {
-                      // Add your play icon action here
-                    },
+                    onPressed: onPlay,
                   ),
                 ),
               ],
