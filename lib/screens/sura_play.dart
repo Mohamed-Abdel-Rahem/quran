@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class SuraPlay extends StatefulWidget {
   final String surahName; // Pass the Surah name to this screen
@@ -21,52 +20,66 @@ class _SuraPlayState extends State<SuraPlay> {
   @override
   void initState() {
     super.initState();
-    _loadAudio();
+    _getAudioUrl();
   }
 
-  Future<void> _loadAudio() async {
-    try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        // Sign in if no user is signed in
-        await FirebaseAuth.instance.signInAnonymously();
-      }
+  @override
+  void dispose() {
+    _audioPlayer.dispose(); // Dispose the audio player
+    super.dispose();
+  }
 
+  Future<void> _getAudioUrl() async {
+    try {
       final storageRef = FirebaseStorage.instance.ref();
-      final audioRef = storageRef
-          .child('quran_audio${widget.surahName}'); // Update path if necessary
-      final url = await audioRef.getDownloadURL();
-      setState(() {
-        _audioUrl = url;
-        _isLoading = false;
-      });
+      final audioRef = storageRef.child(
+          '${widget.surahName}.mp3'); // Use the Surah name to fetch the file
+      final audioUrl = await audioRef.getDownloadURL();
+
+      if (mounted) {
+        setState(() {
+          _audioUrl = audioUrl;
+          _isLoading = false; // Update loading state
+        });
+        _playAudio(); // Start playing the audio once the URL is fetched
+      }
     } catch (e) {
-      // Handle errors here
-      print('Error loading audio: $e');
+      print('Error fetching audio URL: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false; // Update loading state on error
+        });
+      }
     }
   }
 
   void _playAudio() {
     if (_audioUrl != null) {
       _audioPlayer.play(UrlSource(_audioUrl!));
-      setState(() {
-        _isPlaying = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isPlaying = true;
+        });
+      }
     }
   }
 
   void _pauseAudio() {
     _audioPlayer.pause();
-    setState(() {
-      _isPlaying = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isPlaying = false;
+      });
+    }
   }
 
   void _stopAudio() {
     _audioPlayer.stop();
-    setState(() {
-      _isPlaying = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isPlaying = false;
+      });
+    }
   }
 
   @override
@@ -143,8 +156,8 @@ class _SuraPlayState extends State<SuraPlay> {
                     ),
                     child: LinearProgressIndicator(
                       value: _isPlaying
-                          ? null
-                          : 0.5, // Replace with actual progress value if needed
+                          ? null // Use actual progress value if available
+                          : 0.5,
                       backgroundColor: Colors.grey,
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
                       minHeight: screenHeight * 0.01,

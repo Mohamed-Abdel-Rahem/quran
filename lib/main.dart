@@ -16,7 +16,7 @@ void main() async {
     runApp(DevicePreview(
         enabled: true,
         tools: const [...DevicePreview.defaultTools],
-        builder: (context) => const QuranApp()));
+        builder: (context) => const QuranApp()) );
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
   }

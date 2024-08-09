@@ -131,7 +131,7 @@ class _QuranPageState extends State<QuranPage> {
                           MaterialPageRoute(
                             builder: (context) => SuraPlay(
                               surahName:
-                                  '${sura['nameArabic']}', // Ensure this matches your file naming convention
+                                  sura['nameArabic'], // Pass the Surah name
                             ),
                           ),
                         );
