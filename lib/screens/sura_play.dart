@@ -3,7 +3,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 class SuraPlay extends StatefulWidget {
-  final String surahName; // Pass the Surah name to this screen
+  final String surahName;
 
   const SuraPlay({super.key, required this.surahName});
 
@@ -16,11 +16,37 @@ class _SuraPlayState extends State<SuraPlay> {
   bool _isPlaying = false;
   String? _audioUrl;
   bool _isLoading = true;
+  Duration _audioDuration = Duration.zero;
+  Duration _currentPosition = Duration.zero;
 
   @override
   void initState() {
     super.initState();
     _getAudioUrl();
+
+    // Listen to duration and position changes
+    _audioPlayer.onDurationChanged.listen((Duration duration) {
+      if (mounted) {
+        setState(() {
+          _audioDuration = duration;
+        });
+      }
+    });
+
+    _audioPlayer.onPositionChanged.listen((Duration position) {
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+        });
+      }
+    });
+
+    // Handle state changes
+    _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
+      if (state == PlayerState.playing) {
+        // Optional: Handle playback-specific state changes here
+      }
+    });
   }
 
   @override
@@ -32,22 +58,21 @@ class _SuraPlayState extends State<SuraPlay> {
   Future<void> _getAudioUrl() async {
     try {
       final storageRef = FirebaseStorage.instance.ref();
-      final audioRef = storageRef.child(
-          '${widget.surahName}.mp3'); // Use the Surah name to fetch the file
+      final audioRef = storageRef.child('${widget.surahName}.mp3');
       final audioUrl = await audioRef.getDownloadURL();
 
       if (mounted) {
         setState(() {
           _audioUrl = audioUrl;
-          _isLoading = false; // Update loading state
+          _isLoading = false;
         });
-        _playAudio(); // Start playing the audio once the URL is fetched
+        _playAudio();
       }
     } catch (e) {
       print('Error fetching audio URL: $e');
       if (mounted) {
         setState(() {
-          _isLoading = false; // Update loading state on error
+          _isLoading = false;
         });
       }
     }
@@ -78,8 +103,13 @@ class _SuraPlayState extends State<SuraPlay> {
     if (mounted) {
       setState(() {
         _isPlaying = false;
+        _currentPosition = Duration.zero;
       });
     }
+  }
+
+  void _seekAudio(Duration position) {
+    _audioPlayer.seek(position);
   }
 
   @override
@@ -131,7 +161,7 @@ class _SuraPlayState extends State<SuraPlay> {
                 ),
                 SizedBox(height: screenHeight * 0.03),
                 Text(
-                  widget.surahName, // Display Surah name
+                  widget.surahName,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: screenWidth * 0.06,
@@ -140,29 +170,67 @@ class _SuraPlayState extends State<SuraPlay> {
                 ),
                 SizedBox(height: screenHeight * 0.023),
                 Text(
-                  'Surah in English', // Update as necessary
+                  'Surah in English',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: screenWidth * 0.04,
                   ),
                 ),
                 SizedBox(height: screenHeight * 0.22),
-                if (_isLoading)
-                  CircularProgressIndicator(), // Show loading spinner while fetching
-                if (!_isLoading && _audioUrl != null)
-                  Container(
-                    margin: EdgeInsets.symmetric(
-                      horizontal: screenWidth * 0.05,
-                    ),
-                    child: LinearProgressIndicator(
-                      value: _isPlaying
-                          ? null // Use actual progress value if available
-                          : 0.5,
-                      backgroundColor: Colors.grey,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                      minHeight: screenHeight * 0.01,
-                    ),
+                if (!_isLoading)
+                  Column(
+                    children: [
+                      Container(
+                        margin: EdgeInsets.symmetric(
+                          horizontal: screenWidth * 0.05,
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  _formatDuration(_currentPosition),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: screenWidth * 0.04,
+                                  ),
+                                ),
+                                Text(
+                                  _formatDuration(_audioDuration),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: screenWidth * 0.04,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: screenHeight * 0.01),
+                            Slider(
+                              value: _audioDuration.inMilliseconds > 0
+                                  ? (_currentPosition.inMilliseconds /
+                                          _audioDuration.inMilliseconds)
+                                      .clamp(0.0, 1.0)
+                                  : 0.0,
+                              onChanged: (value) {
+                                final newPosition = Duration(
+                                  milliseconds:
+                                      (value * _audioDuration.inMilliseconds)
+                                          .toInt(),
+                                );
+                                _seekAudio(newPosition);
+                              },
+                              min: 0,
+                              max: 1,
+                              activeColor: Colors.blue,
+                              inactiveColor: Colors.grey,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
+                if (_isLoading) CircularProgressIndicator(),
                 SizedBox(height: screenHeight * 0.03),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -210,7 +278,7 @@ class _SuraPlayState extends State<SuraPlay> {
                 ),
               ],
               title: Text(
-                widget.surahName, // Display Surah name in AppBar
+                widget.surahName,
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
@@ -224,6 +292,12 @@ class _SuraPlayState extends State<SuraPlay> {
         ],
       ),
     );
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   Widget _buildControlButton(

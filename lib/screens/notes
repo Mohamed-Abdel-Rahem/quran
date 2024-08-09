@@ -1,0 +1,12 @@
+ // Slider(
+                            //   value:
+                            //       _currentPosition.inSeconds.toDouble().clamp(
+                            //             0.0,
+                            //             _audioDuration.inSeconds.toDouble(),
+                            //           ),
+                            //   min: 0.0,
+                            //   max: _audioDuration.inSeconds.toDouble(),
+                            //   onChanged: (double value) {
+                            //     _seekAudio(Duration(seconds: value.toInt()));
+                            //   },
+                            // ),
