@@ -130,6 +130,7 @@ class _QuranPageState extends State<QuranPage> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => SuraPlay(
+                              surahNameEnglish: sura['nameEnglish'],
                               surahName:
                                   sura['nameArabic'], // Pass the Surah name
                             ),
