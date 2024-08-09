@@ -4,8 +4,9 @@ import 'package:audioplayers/audioplayers.dart';
 
 class SuraPlay extends StatefulWidget {
   final String surahName;
-
-  const SuraPlay({super.key, required this.surahName});
+  final String surahNameEnglish;
+  const SuraPlay(
+      {super.key, required this.surahName, required this.surahNameEnglish});
 
   @override
   _SuraPlayState createState() => _SuraPlayState();
@@ -170,7 +171,7 @@ class _SuraPlayState extends State<SuraPlay> {
                 ),
                 SizedBox(height: screenHeight * 0.023),
                 Text(
-                  'Surah in English',
+                  widget.surahNameEnglish,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: screenWidth * 0.04,
