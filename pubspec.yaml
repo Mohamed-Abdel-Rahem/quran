@@ -51,6 +51,7 @@ dependencies:
   cloud_firestore: ^4.14.0
   audioplayers: ^5.2.1
   just_audio: ^0.9.37
+  connectivity_plus: ^6.0.5
 
 dev_dependencies:
   flutter_test:

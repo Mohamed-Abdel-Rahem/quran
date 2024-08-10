@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class SuraPlay extends StatefulWidget {
   final String surahName;
@@ -9,6 +10,7 @@ class SuraPlay extends StatefulWidget {
       {super.key, required this.surahName, required this.surahNameEnglish});
 
   @override
+  // ignore: library_private_types_in_public_api
   _SuraPlayState createState() => _SuraPlayState();
 }
 
@@ -23,7 +25,7 @@ class _SuraPlayState extends State<SuraPlay> {
   @override
   void initState() {
     super.initState();
-    _getAudioUrl();
+    _checkConnectivityAndFetchAudio();
 
     // Listen to duration and position changes
     _audioPlayer.onDurationChanged.listen((Duration duration) {
@@ -56,6 +58,15 @@ class _SuraPlayState extends State<SuraPlay> {
     super.dispose();
   }
 
+  Future<void> _checkConnectivityAndFetchAudio() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      _showNoInternetDialog();
+    } else {
+      _getAudioUrl();
+    }
+  }
+
   Future<void> _getAudioUrl() async {
     try {
       final storageRef = FirebaseStorage.instance.ref();
@@ -70,7 +81,7 @@ class _SuraPlayState extends State<SuraPlay> {
         _playAudio();
       }
     } catch (e) {
-      print('Error fetching  URL: $e');
+      print('Error fetching URL: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -111,6 +122,26 @@ class _SuraPlayState extends State<SuraPlay> {
 
   void _seekAudio(Duration position) {
     _audioPlayer.seek(position);
+  }
+
+  void _showNoInternetDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('No Internet Connection'),
+          content: Text('Please check your internet connection and try again.'),
+          actions: [
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -177,62 +208,59 @@ class _SuraPlayState extends State<SuraPlay> {
                     fontSize: screenWidth * 0.04,
                   ),
                 ),
-                SizedBox(height: screenHeight * 0.22),
-                if (!_isLoading)
-                  Column(
-                    children: [
-                      Container(
-                        margin: EdgeInsets.symmetric(
-                          horizontal: screenWidth * 0.05,
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  _formatDuration(_currentPosition),
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: screenWidth * 0.04,
-                                  ),
-                                ),
-                                Text(
-                                  _formatDuration(_audioDuration),
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: screenWidth * 0.04,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: screenHeight * 0.01),
-                            Slider(
-                              value: _audioDuration.inMilliseconds > 0
-                                  ? (_currentPosition.inMilliseconds /
-                                          _audioDuration.inMilliseconds)
-                                      .clamp(0.0, 1.0)
-                                  : 0.0,
-                              onChanged: (value) {
-                                final newPosition = Duration(
-                                  milliseconds:
-                                      (value * _audioDuration.inMilliseconds)
-                                          .toInt(),
-                                );
-                                _seekAudio(newPosition);
-                              },
-                              min: 0,
-                              max: 1,
-                              activeColor: Colors.blue,
-                              inactiveColor: Colors.grey,
-                            ),
-                          ],
-                        ),
+                SizedBox(height: screenHeight * 0.05),
+                Column(
+                  children: [
+                    Container(
+                      margin: EdgeInsets.symmetric(
+                        horizontal: screenWidth * 0.05,
                       ),
-                    ],
-                  ),
-                if (_isLoading) CircularProgressIndicator(),
-                SizedBox(height: screenHeight * 0.03),
+                      child: Column(
+                        children: [
+                          SizedBox(height: screenHeight * 0.01),
+                          Slider(
+                            value: _audioDuration.inMilliseconds > 0
+                                ? (_currentPosition.inMilliseconds /
+                                        _audioDuration.inMilliseconds)
+                                    .clamp(0.0, 1.0)
+                                : 0.0,
+                            onChanged: (value) {
+                              final newPosition = Duration(
+                                milliseconds:
+                                    (value * _audioDuration.inMilliseconds)
+                                        .toInt(),
+                              );
+                              _seekAudio(newPosition);
+                            },
+                            min: 0,
+                            max: 1,
+                            activeColor: Colors.blue,
+                            inactiveColor: Colors.grey,
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _formatDuration(_currentPosition),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: screenWidth * 0.04,
+                                ),
+                              ),
+                              Text(
+                                _formatDuration(_audioDuration),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: screenWidth * 0.04,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [

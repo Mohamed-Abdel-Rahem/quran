@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:quran/services/email_services.dart';
+import 'package:quran/services/whatsapp_services.dart';
 import 'package:quran/widgets/connect_widget.dart';
 import 'package:quran/widgets/custom_text_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -88,15 +89,15 @@ class DeveloperPage extends StatelessWidget {
               ConnectWidget(
                 onTap: () {
                   funcOpenMailComposer();
-                },
+                }, // your function here
+
                 text: 'mohamedar2002mail@gmail.com',
                 icon: Icons.email,
               ),
               SizedBox(height: screenSize.width * 0.06),
               ConnectWidget(
                 onTap: () {
-                  launcherWhatsapp(
-                      phoneNumber: "+201152619144", messageContent: 'hello');
+                  funcOpenWhatsApp(context);
                 },
                 icon: Icons.call,
                 text: 'Whatsapp and Call : (+20) 01152619144 ',
