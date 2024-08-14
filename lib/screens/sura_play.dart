@@ -1,33 +1,59 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
 
 class SuraPlay extends StatefulWidget {
   final String surahName;
   final String surahNameEnglish;
-  const SuraPlay(
-      {super.key, required this.surahName, required this.surahNameEnglish});
+
+  const SuraPlay({
+    super.key,
+    required this.surahName,
+    required this.surahNameEnglish,
+  });
 
   @override
-  // ignore: library_private_types_in_public_api
   _SuraPlayState createState() => _SuraPlayState();
 }
 
 class _SuraPlayState extends State<SuraPlay> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isPlaying = false;
+  bool _isRepeating = false;
   String? _audioUrl;
   bool _isLoading = true;
   Duration _audioDuration = Duration.zero;
   Duration _currentPosition = Duration.zero;
+  bool _isConnected = true;
+  bool _dialogShown = false;
+  StreamSubscription<InternetConnectionStatus>? _connectivitySubscription;
 
   @override
   void initState() {
     super.initState();
-    _checkConnectivityAndFetchAudio();
+    _checkConnectivity(); // Check the initial connectivity status
 
-    // Listen to duration and position changes
+    _connectivitySubscription =
+        InternetConnectionChecker().onStatusChange.listen((status) {
+      final isConnected = status == InternetConnectionStatus.connected;
+      if (!isConnected) {
+        _showNoInternetDialog();
+      } else {
+        if (mounted) {
+          _resumeAudioIfNeeded();
+        }
+      }
+      setState(() {
+        _isConnected = isConnected;
+      });
+    });
+
+    _getAudioUrl();
+
     _audioPlayer.onDurationChanged.listen((Duration duration) {
       if (mounted) {
         setState(() {
@@ -44,34 +70,43 @@ class _SuraPlayState extends State<SuraPlay> {
       }
     });
 
-    // Handle state changes
     _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
-      if (state == PlayerState.playing) {
-        // Optional: Handle playback-specific state changes here
+      if (state == PlayerState.completed && _isRepeating) {
+        _playAudio(); // Repeat the audio
       }
     });
   }
 
   @override
   void dispose() {
-    _audioPlayer.dispose(); // Dispose the audio player
+    _audioPlayer.dispose();
+    _connectivitySubscription?.cancel();
     super.dispose();
   }
 
-  Future<void> _checkConnectivityAndFetchAudio() async {
-    final connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult == ConnectivityResult.none) {
-      _showNoInternetDialog();
-    } else {
-      _getAudioUrl();
-    }
+  Future<void> _checkConnectivity() async {
+    final isConnected = await InternetConnectionChecker().hasConnection;
+    setState(() {
+      _isConnected = isConnected;
+      if (!_isConnected) {
+        _showNoInternetDialog();
+      }
+    });
   }
 
   Future<void> _getAudioUrl() async {
+    if (!_isConnected) return;
+
     try {
       final storageRef = FirebaseStorage.instance.ref();
       final audioRef = storageRef.child('${widget.surahName}.mp3');
-      final audioUrl = await audioRef.getDownloadURL();
+
+      final audioUrl = await audioRef
+          .getDownloadURL()
+          .timeout(const Duration(seconds: 30), onTimeout: () {
+        throw TimeoutException(
+            'The connection has timed out, please try again later.');
+      });
 
       if (mounted) {
         setState(() {
@@ -81,28 +116,39 @@ class _SuraPlayState extends State<SuraPlay> {
         _playAudio();
       }
     } catch (e) {
-      print('Error fetching URL: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
       }
-    }
-  }
-
-  void _playAudio() {
-    if (_audioUrl != null) {
-      _audioPlayer.play(UrlSource(_audioUrl!));
-      if (mounted) {
-        setState(() {
-          _isPlaying = true;
-        });
+      if (e is TimeoutException || e is SocketException) {
+        _showNoInternetDialog();
+      } else {
+        _showErrorDialog('An unexpected error occurred. Please try again.');
       }
+      print('Error fetching URL: $e');
     }
   }
 
-  void _pauseAudio() {
-    _audioPlayer.pause();
+  void _playAudio() async {
+    if (_isConnected) {
+      if (_audioUrl != null) {
+        await _audioPlayer.play(UrlSource(_audioUrl!));
+        if (mounted) {
+          setState(() {
+            _isPlaying = true;
+          });
+        }
+      } else {
+        _showErrorDialog('Audio URL is not available.');
+      }
+    } else {
+      _showNoInternetDialog();
+    }
+  }
+
+  void _pauseAudio() async {
+    await _audioPlayer.pause();
     if (mounted) {
       setState(() {
         _isPlaying = false;
@@ -110,8 +156,8 @@ class _SuraPlayState extends State<SuraPlay> {
     }
   }
 
-  void _stopAudio() {
-    _audioPlayer.stop();
+  void _stopAudio() async {
+    await _audioPlayer.stop();
     if (mounted) {
       setState(() {
         _isPlaying = false;
@@ -124,24 +170,207 @@ class _SuraPlayState extends State<SuraPlay> {
     _audioPlayer.seek(position);
   }
 
+  void _forward10Seconds() {
+    if (mounted) {
+      final newPosition = _currentPosition + Duration(seconds: 10);
+      if (newPosition < _audioDuration) {
+        _seekAudio(newPosition);
+      } else {
+        _seekAudio(_audioDuration);
+      }
+    }
+  }
+
+  void _toggleRepeat() {
+    setState(() {
+      _isRepeating = !_isRepeating;
+    });
+  }
+
   void _showNoInternetDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('No Internet Connection'),
-          content: Text('Please check your internet connection and try again.'),
-          actions: [
-            TextButton(
-              child: Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+    if (mounted && !_dialogShown) {
+      _dialogShown = true;
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20.0),
             ),
-          ],
-        );
-      },
-    );
+            titlePadding: EdgeInsets.zero,
+            contentPadding: EdgeInsets.zero,
+            content: Directionality(
+              textDirection: TextDirection.rtl,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20.0),
+                  color: Colors.black,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(20.0),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.signal_wifi_off,
+                        size: 50.0,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 20.0),
+                    Text(
+                      'لا يوجد إتصال بالإنترنت',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                      textDirection: TextDirection.rtl,
+                    ),
+                    SizedBox(height: 10.0),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Text(
+                        'يرجى التأكد من اتصال جهازك بالإنترنت وإعادة المحاولة.',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.0,
+                        ),
+                        textAlign: TextAlign.center,
+                        textDirection: TextDirection.rtl,
+                      ),
+                    ),
+                    SizedBox(height: 20.0),
+                    Divider(color: Colors.grey),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(15.0),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20.0),
+                                color: Colors.red,
+                              ),
+                              child: Text(
+                                'إغلاق',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18.0,
+                                ),
+                                textAlign: TextAlign.center,
+                                textDirection: TextDirection.rtl,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 10.0), // Added space between buttons
+                        Expanded(
+                          child: InkWell(
+                            onTap: () async {
+                              Navigator.of(context).pop();
+                              _checkConnectivity(); // Retry checking connectivity
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(15.0),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20.0),
+                                color: Colors.green,
+                              ),
+                              child: Text(
+                                'إعادة المحاولة',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18.0,
+                                ),
+                                textAlign: TextAlign.center,
+                                textDirection: TextDirection.rtl,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ).then((_) {
+        if (mounted) {
+          setState(() {
+            _dialogShown = false;
+          });
+        }
+      });
+    }
+  }
+
+  void _showErrorDialog(String message) {
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Error'),
+            content: Text(message),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: Text('OK'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
+
+  void _resumeAudioIfNeeded() {
+    if (_audioUrl != null && !_isPlaying) {
+      _playAudio();
+    }
+  }
+
+  void _handlePlayPauseButtonPressed() async {
+    if (_isLoading) return; // Prevent multiple requests
+
+    setState(() {
+      _isLoading = true; // Start loading
+    });
+
+    if (_isPlaying) {
+      _pauseAudio();
+    } else {
+      final isConnected = await InternetConnectionChecker().hasConnection;
+
+      if (isConnected) {
+        setState(() {
+          _isConnected = isConnected;
+        });
+        _playAudio();
+      } else {
+        _showNoInternetDialog();
+      }
+    }
+
+    setState(() {
+      _isLoading = false; // Stop loading
+    });
   }
 
   @override
@@ -265,14 +494,18 @@ class _SuraPlayState extends State<SuraPlay> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildControlButton(
-                        Icons.replay_10, screenWidth, _stopAudio),
+                        Icons.replay_10, screenWidth, _forward10Seconds),
                     _buildControlButton(
                       _isPlaying ? Icons.pause : Icons.play_arrow,
                       screenWidth,
-                      _isPlaying ? _pauseAudio : _playAudio,
+                      _handlePlayPauseButtonPressed,
                     ),
-                    _buildControlButton(Icons.forward_10, screenWidth, () {}),
-                    _buildControlButton(Icons.repeat, screenWidth, () {}),
+                    _buildControlButton(Icons.stop, screenWidth, _stopAudio),
+                    _buildControlButton(
+                      _isRepeating ? Icons.repeat_on : Icons.repeat,
+                      screenWidth,
+                      _toggleRepeat,
+                    ),
                   ],
                 ),
               ],
@@ -332,7 +565,12 @@ class _SuraPlayState extends State<SuraPlay> {
   Widget _buildControlButton(
       IconData icon, double screenWidth, VoidCallback onPressed) {
     return IconButton(
-      icon: Icon(icon),
+      icon: _isLoading && icon == Icons.play_arrow
+          ? CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 2.0,
+            )
+          : Icon(icon),
       color: Colors.white,
       iconSize: screenWidth * 0.08,
       padding: EdgeInsets.all(screenWidth * 0.02),

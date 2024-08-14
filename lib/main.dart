@@ -7,7 +7,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:quran/generated/l10n.dart';
 import 'package:quran/screens/home_page.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,7 +15,7 @@ void main() async {
     runApp(DevicePreview(
         enabled: true,
         tools: const [...DevicePreview.defaultTools],
-        builder: (context) => const QuranApp()) );
+        builder: (context) => const QuranApp()));
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
   }
