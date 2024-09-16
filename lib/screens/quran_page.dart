@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:quran/firebase/services/list_of_quran.dart';
-import 'package:quran/screens/sura_play.dart';
+import 'package:quran/screens/tesPage.dart';
 import 'package:quran/widgets/backgroun_build.dart';
 import 'package:quran/widgets/custom_list_tile.dart';
 import 'package:quran/widgets/custom_text_widget.dart';
@@ -129,8 +129,7 @@ class _QuranPageState extends State<QuranPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => SuraPlay(
-                              surahNameEnglish: sura['nameEnglish'],
+                            builder: (context) => AudioPlayerScreen(
                               surahName:
                                   sura['nameArabic'], // Pass the Surah name
                             ),

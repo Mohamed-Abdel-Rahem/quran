@@ -10,3 +10,1196 @@
                             //     _seekAudio(Duration(seconds: value.toInt()));
                             //   },
                             // ),
+
+
+
+                            /*import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
+
+class SuraPlay extends StatefulWidget {
+  final String surahName;
+  final String surahNameEnglish;
+
+  const SuraPlay({
+    super.key,
+    required this.surahName,
+    required this.surahNameEnglish,
+  });
+
+  @override
+  _SuraPlayState createState() => _SuraPlayState();
+}
+
+class _SuraPlayState extends State<SuraPlay> {
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isPlaying = false;
+  bool _isRepeating = false;
+  String? _audioUrl;
+  bool _isLoading = true;
+  Duration _audioDuration = Duration.zero;
+  Duration _currentPosition = Duration.zero;
+  bool _isConnected = true;
+  bool _dialogShown = false;
+  bool _isDownloaded = false;
+  StreamSubscription<InternetConnectionStatus>? _connectivitySubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkConnectivity();
+
+    _connectivitySubscription =
+        InternetConnectionChecker().onStatusChange.listen((status) {
+      final isConnected = status == InternetConnectionStatus.connected;
+      if (!isConnected) {
+        _showNoInternetDialog();
+      } else {
+        if (mounted) {
+          _resumeAudioIfNeeded();
+        }
+      }
+      setState(() {
+        _isConnected = isConnected;
+      });
+    });
+
+    _getAudioUrl();
+
+    _audioPlayer.onDurationChanged.listen((Duration duration) {
+      if (mounted) {
+        setState(() {
+          _audioDuration = duration;
+        });
+      }
+    });
+
+    _audioPlayer.onPositionChanged.listen((Duration position) {
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+        });
+      }
+    });
+
+    _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
+      if (state == PlayerState.completed && _isRepeating) {
+        _playAudio(); // Repeat the audio
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    _connectivitySubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _checkConnectivity() async {
+    final isConnected = await InternetConnectionChecker().hasConnection;
+    setState(() {
+      _isConnected = isConnected;
+      if (!_isConnected) {
+        _showNoInternetDialog();
+      }
+    });
+  }
+
+  Future<void> _getAudioUrl() async {
+    if (!_isConnected) return;
+
+    try {
+      final storageRef = FirebaseStorage.instance.ref();
+      final audioRef = storageRef.child('${widget.surahName}.mp3');
+
+      final audioUrl = await audioRef
+          .getDownloadURL()
+          .timeout(const Duration(seconds: 30), onTimeout: () {
+        throw TimeoutException(
+            'The connection has timed out, please try again later.');
+      });
+
+      if (mounted) {
+        setState(() {
+          _audioUrl = audioUrl;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+      if (e is TimeoutException || e is SocketException) {
+        _showNoInternetDialog();
+      } else {
+        _showErrorDialog('An unexpected error occurred. Please try again.');
+      }
+      print('Error fetching URL: $e');
+    }
+  }
+
+  Future<void> _downloadAudio() async {
+    if (_audioUrl == null) return;
+
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = '${directory.path}/${widget.surahName}.mp3';
+    final file = File(filePath);
+
+    try {
+      final ref =
+          FirebaseStorage.instance.ref().child('${widget.surahName}.mp3');
+      final downloadTask = ref.writeToFile(file);
+
+      await downloadTask.whenComplete(() {
+        setState(() {
+          _isDownloaded = true;
+        });
+      });
+
+      _showSuccessDialog('Audio downloaded successfully!');
+    } catch (e) {
+      _showErrorDialog('Failed to download audio. Please try again.');
+      print('Error downloading file: $e');
+    }
+  }
+
+  Future<void> _playAudio({int retryCount = 0}) async {
+    try {
+      String? pathToPlay;
+
+      // Check if the file is already downloaded
+      final directory = await getApplicationDocumentsDirectory();
+      final filePath = '${directory.path}/${widget.surahName}.mp3';
+      final file = File(filePath);
+
+      if (file.existsSync()) {
+        pathToPlay = filePath;
+      } else if (_audioUrl != null && _isConnected) {
+        pathToPlay = _audioUrl;
+      }
+
+      if (pathToPlay != null) {
+        await _audioPlayer.stop();
+        await _audioPlayer.play(
+          pathToPlay.startsWith('http')
+              ? UrlSource(pathToPlay)
+              : DeviceFileSource(pathToPlay),
+        );
+
+        if (mounted) {
+          setState(() {
+            _isPlaying = true;
+          });
+        }
+      } else {
+        _showErrorDialog('Audio URL is not available.');
+      }
+    } catch (e) {
+      if (retryCount < 3) {
+        print('Error playing audio: $e. Retrying...');
+        await Future.delayed(
+            Duration(seconds: 2 << retryCount)); // Exponential backoff
+        _playAudio(retryCount: retryCount + 1);
+      } else {
+        print('Failed to play audio after multiple attempts.');
+        _showErrorDialog('Failed to play audio. Please try again later.');
+      }
+    }
+  }
+
+  void _pauseAudio() async {
+    await _audioPlayer.pause();
+    if (mounted) {
+      setState(() {
+        _isPlaying = false;
+      });
+    }
+  }
+
+  void _stopAudio() async {
+    if (mounted) {
+      try {
+        await _audioPlayer.stop();
+        setState(() {
+          _isPlaying = false;
+          _currentPosition = Duration.zero;
+        });
+      } catch (e) {
+        print('Error stopping audio: $e');
+      }
+    }
+  }
+
+  void _seekAudio(Duration position) {
+    _audioPlayer.seek(position);
+  }
+
+  void _forward10Seconds() {
+    if (mounted) {
+      final newPosition = _currentPosition + Duration(seconds: 10);
+      if (newPosition < _audioDuration) {
+        _seekAudio(newPosition);
+      } else {
+        _seekAudio(_audioDuration);
+      }
+    }
+  }
+
+  void _toggleRepeat() {
+    setState(() {
+      _isRepeating = !_isRepeating;
+    });
+  }
+
+  void _showNoInternetDialog() {
+    if (mounted && !_dialogShown) {
+      _dialogShown = true;
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20.0),
+            ),
+            titlePadding: EdgeInsets.zero,
+            contentPadding: EdgeInsets.zero,
+            content: Directionality(
+              textDirection: TextDirection.rtl,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20.0),
+                  color: Colors.black,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(20.0),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.signal_wifi_off,
+                        size: 50.0,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 20.0),
+                    Text(
+                      'لا يوجد إتصال بالإنترنت',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                      textDirection: TextDirection.rtl,
+                    ),
+                    SizedBox(height: 10.0),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Text(
+                        'يرجى التأكد من اتصال جهازك بالإنترنت وإعادة المحاولة.',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.0,
+                        ),
+                        textAlign: TextAlign.center,
+                        textDirection: TextDirection.rtl,
+                      ),
+                    ),
+                    SizedBox(height: 20.0),
+                    Divider(color: Colors.grey),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(15.0),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.only(
+                                  bottomRight: Radius.circular(20.0),
+                                  bottomLeft: Radius.circular(20.0),
+                                ),
+                                color: Colors.grey[800],
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'إغلاق',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18.0,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ).then((_) {
+        setState(() {
+          _dialogShown = false;
+        });
+      });
+    }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+          ),
+          title: Text(
+            'Error',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Text(message),
+          actions: <Widget>[
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+          ),
+          title: Text(
+            'Success',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Text(message),
+          actions: <Widget>[
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  PlayerState _playerState = PlayerState.paused;
+
+  void _resumeAudioIfNeeded() {
+    if (_isPlaying && _playerState != PlayerState.playing) {
+      _playAudio();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Text(
+            widget.surahNameEnglish,
+            style: TextStyle(
+              fontSize: 24.0,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        backgroundColor: Colors.grey[900],
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            _stopAudio();
+            Navigator.pop(context);
+          },
+        ),
+      ),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            widget.surahName,
+            style: TextStyle(
+              fontSize: 28.0,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          SizedBox(height: 20.0),
+          if (_isLoading) CircularProgressIndicator(),
+          Slider(
+            activeColor: Colors.white,
+            inactiveColor: Colors.grey[700],
+            value: _currentPosition.inSeconds.toDouble(),
+            min: 0.0,
+            max: _audioDuration.inSeconds.toDouble(),
+            onChanged: (double value) {
+              setState(() {
+                _seekAudio(Duration(seconds: value.toInt()));
+              });
+            },
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _formatDuration(_currentPosition),
+                  style: TextStyle(color: Colors.white),
+                ),
+                Text(
+                  _formatDuration(_audioDuration),
+                  style: TextStyle(color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                onPressed: _forward10Seconds,
+                icon: Icon(
+                  Icons.forward_10,
+                  color: Colors.white,
+                  size: 36.0,
+                ),
+              ),
+              IconButton(
+                onPressed: _isPlaying ? _pauseAudio : _playAudio,
+                icon: Icon(
+                  _isPlaying ? Icons.pause : Icons.play_arrow,
+                  color: Colors.white,
+                  size: 64.0,
+                ),
+              ),
+              IconButton(
+                onPressed: _toggleRepeat,
+                icon: Icon(
+                  _isRepeating ? Icons.repeat_on : Icons.repeat,
+                  color: _isRepeating ? Colors.green : Colors.white,
+                  size: 36.0,
+                ),
+              ),
+            ],
+          ),
+          IconButton(
+            icon: Icon(
+              _isDownloaded ? Icons.download_done : Icons.download,
+              color: Colors.white,
+            ),
+            onPressed: _isDownloaded ? null : _downloadAudio,
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes.toString().padLeft(2, '0');
+    final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+}*/
+
+
+
+
+
+
+
+
+
+
+/*import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
+
+class SuraPlay extends StatefulWidget {
+  final String surahName;
+  final String surahNameEnglish;
+
+  const SuraPlay({
+    super.key,
+    required this.surahName,
+    required this.surahNameEnglish,
+  });
+
+  @override
+  _SuraPlayState createState() => _SuraPlayState();
+}
+
+class _SuraPlayState extends State<SuraPlay> {
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isPlaying = false;
+  bool _isRepeating = false;
+  String? _audioUrl;
+  bool _isLoading = true;
+  Duration _audioDuration = Duration.zero;
+  Duration _currentPosition = Duration.zero;
+  bool _isConnected = true;
+  bool _dialogShown = false;
+  bool _isDownloaded = false;
+  StreamSubscription<InternetConnectionStatus>? _connectivitySubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkConnectivity();
+
+    _connectivitySubscription =
+        InternetConnectionChecker().onStatusChange.listen((status) {
+      final isConnected = status == InternetConnectionStatus.connected;
+      if (!isConnected) {
+        _showNoInternetDialog();
+      } else {
+        if (mounted) {
+          _resumeAudioIfNeeded();
+        }
+      }
+      setState(() {
+        _isConnected = isConnected;
+      });
+    });
+
+    _getAudioUrl();
+
+    _audioPlayer.onDurationChanged.listen((Duration duration) {
+      if (mounted) {
+        setState(() {
+          _audioDuration = duration;
+        });
+      }
+    });
+
+    _audioPlayer.onPositionChanged.listen((Duration position) {
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+        });
+      }
+    });
+
+    _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
+      if (state == PlayerState.completed && _isRepeating) {
+        _playAudio(); // Repeat the audio
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    _connectivitySubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _handlePlayPauseButtonPressed() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    if (_isPlaying) {
+      _pauseAudio();
+    } else {
+      final isConnected = await InternetConnectionChecker().hasConnection;
+      print('Connectivity status: $isConnected'); // Debug print
+      setState(() {
+        _isConnected = isConnected;
+      });
+
+      if (isConnected || _isDownloaded) {
+        _playAudio();
+      } else {
+        _showErrorDialog(
+          'يرجى التأكد من اتصال جهازك بالإنترنت وإعادة المحاولة أو تحقق من تحميل السورة مسبقًا.',
+        );
+      }
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _checkConnectivity() async {
+    final isConnected = await InternetConnectionChecker().hasConnection;
+    setState(() {
+      _isConnected = isConnected;
+      if (!_isConnected) {
+        _showNoInternetDialog();
+      }
+    });
+  }
+
+  Future<void> _getAudioUrl() async {
+    if (!_isConnected) return;
+
+    try {
+      final storageRef = FirebaseStorage.instance.ref();
+      final audioRef = storageRef.child('${widget.surahName}.mp3');
+
+      final audioUrl = await audioRef
+          .getDownloadURL()
+          .timeout(const Duration(seconds: 30), onTimeout: () {
+        throw TimeoutException(
+            'The connection has timed out, please try again later.');
+      });
+
+      if (mounted) {
+        setState(() {
+          _audioUrl = audioUrl;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+      if (e is TimeoutException || e is SocketException) {
+        _showNoInternetDialog();
+      } else {
+        _showErrorDialog('An unexpected error occurred. Please try again.');
+      }
+      print('Error fetching URL: $e');
+    }
+  }
+
+  Future<void> _downloadAudio() async {
+    if (_audioUrl == null) return;
+
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = '${directory.path}/${widget.surahName}.mp3';
+    final file = File(filePath);
+
+    try {
+      final ref =
+          FirebaseStorage.instance.ref().child('${widget.surahName}.mp3');
+      final downloadTask = ref.writeToFile(file);
+
+      await downloadTask.whenComplete(() {
+        setState(() {
+          _isDownloaded = true;
+        });
+        print('Audio downloaded to $filePath');
+      });
+
+      _showSuccessDialog('Audio downloaded successfully!');
+    } catch (e) {
+      _showErrorDialog('Failed to download audio. Please try again.');
+      print('Error downloading file: $e');
+    }
+  }
+
+  Future<void> _playAudio({int retryCount = 0}) async {
+    try {
+      String? pathToPlay;
+
+      // Check for local file
+      final directory = await getApplicationDocumentsDirectory();
+      final filePath = '${directory.path}/${widget.surahName}.mp3';
+      final file = File(filePath);
+
+      if (file.existsSync()) {
+        print('Local file exists: $filePath'); // Debug print
+        pathToPlay = filePath;
+      } else if (_audioUrl != null && _isConnected) {
+        pathToPlay = _audioUrl;
+      } else {
+        // Show dialog if no internet and no local file
+        if (!_isConnected) {
+          _showErrorDialog(
+            'يرجى التأكد من اتصال جهازك بالإنترنت وإعادة المحاولة أو تحقق من تحميل السورة مسبقًا.',
+          );
+        } else {
+          _showErrorDialog('Audio URL is not available.');
+        }
+        return;
+      }
+
+      if (pathToPlay != null) {
+        if (_audioPlayer.state == PlayerState.playing) {
+          await _audioPlayer.pause();
+        }
+
+        // Play the audio
+        await _audioPlayer.play(
+          pathToPlay.startsWith('http')
+              ? UrlSource(pathToPlay)
+              : DeviceFileSource(pathToPlay),
+          position: _currentPosition,
+        );
+
+        if (mounted) {
+          setState(() {
+            _isPlaying = true;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error during playback: $e');
+      if (retryCount < 3) {
+        await Future.delayed(Duration(seconds: 2 << retryCount));
+        _playAudio(retryCount: retryCount + 1);
+      } else {
+        _showErrorDialog('Failed to play audio. Please try again later.');
+      }
+    }
+  }
+
+  void _pauseAudio() async {
+    await _audioPlayer.pause();
+    if (mounted) {
+      setState(() {
+        _isPlaying = false;
+      });
+    }
+  }
+
+  void _stopAudio() async {
+    if (mounted) {
+      try {
+        await _audioPlayer.stop();
+        setState(() {
+          _isPlaying = false;
+          _currentPosition = Duration.zero;
+        });
+      } catch (e) {
+        print('Error stopping audio: $e');
+      }
+    }
+  }
+
+  void _seekAudio(Duration position) {
+    _audioPlayer.seek(position);
+  }
+
+  void _forward10Seconds() {
+    if (mounted) {
+      final newPosition = _currentPosition + Duration(seconds: 10);
+      if (newPosition < _audioDuration) {
+        _seekAudio(newPosition);
+      } else {
+        _seekAudio(_audioDuration);
+      }
+    }
+  }
+
+  void _toggleRepeat() {
+    setState(() {
+      _isRepeating = !_isRepeating;
+    });
+  }
+
+  void _showNoInternetDialog() {
+    if (mounted && !_dialogShown) {
+      _dialogShown = true;
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20.0),
+            ),
+            titlePadding: EdgeInsets.zero,
+            contentPadding: EdgeInsets.zero,
+            content: Directionality(
+              textDirection: TextDirection.rtl,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20.0),
+                  color: Colors.black,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(20.0),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.signal_wifi_off,
+                        size: 50.0,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 20.0),
+                    Text(
+                      'لا يوجد إتصال بالإنترنت',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                      textDirection: TextDirection.rtl,
+                    ),
+                    SizedBox(height: 10.0),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Text(
+                        'يرجى التأكد من اتصال جهازك بالإنترنت وإعادة المحاولة أو تحقق من تحميل السورة مسبقًا.',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.0,
+                        ),
+                        textAlign: TextAlign.center,
+                        textDirection: TextDirection.rtl,
+                      ),
+                    ),
+                    SizedBox(height: 20.0),
+                    Divider(color: Colors.grey),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(15.0),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.only(
+                                  bottomRight: Radius.circular(20.0),
+                                  bottomLeft: Radius.circular(20.0),
+                                ),
+                                color: Colors.grey[800],
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'إغلاق',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18.0,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ).then((_) {
+        setState(() {
+          _dialogShown = false;
+        });
+      });
+    }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+          ),
+          title: Text(
+            'Error',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Text(message),
+          actions: <Widget>[
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+          ),
+          title: Text(
+            'Success',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Text(message),
+          actions: <Widget>[
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  PlayerState _playerState = PlayerState.paused;
+
+  void _resumeAudioIfNeeded() {
+    if (_isPlaying && _playerState != PlayerState.playing) {
+      _playAudio();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final double screenWidth = screenSize.width;
+    final double screenHeight = screenSize.height;
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        backgroundColor: const Color(0xff4A5759),
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.arrow_right,
+              color: Colors.white,
+              size: 40,
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+        ],
+        title: Text(
+          widget.surahName,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontFamily: 'Tajawal',
+          ),
+        ),
+        centerTitle: true,
+        elevation: 0,
+      ),
+      body: Stack(
+        children: [
+          Positioned(
+            top: -screenSize.width * 0.25,
+            right: -screenSize.width * 0.25,
+            child: Image.asset(
+              'assets/ellipse/Ellipse 10.png',
+              width: screenSize.width * 1.1,
+              height: screenSize.width * 1.1,
+            ),
+          ),
+          Image.asset(
+            'assets/images/backgroundsura.png',
+            fit: BoxFit.cover,
+            width: screenWidth,
+            height: screenHeight,
+          ),
+          Container(
+            color: Colors.black.withOpacity(0.5),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: screenWidth * 0.55,
+                  height: screenWidth * 0.55,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    border: Border.all(
+                      color: Colors.blueAccent,
+                      width: 4,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.5),
+                        spreadRadius: 2,
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/suraicon.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                SizedBox(height: screenHeight * 0.03),
+                Text(
+                  widget.surahName,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: screenWidth * 0.06,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: screenHeight * 0.023),
+                Text(
+                  widget.surahNameEnglish,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: screenWidth * 0.04,
+                  ),
+                ),
+                SizedBox(height: screenHeight * 0.05),
+                Column(
+                  children: [
+                    Container(
+                      margin: EdgeInsets.symmetric(
+                        horizontal: screenWidth * 0.05,
+                      ),
+                      child: Column(
+                        children: [
+                          SizedBox(height: screenHeight * 0.01),
+                          Slider(
+                            value: _audioDuration.inMilliseconds > 0
+                                ? (_currentPosition.inMilliseconds /
+                                        _audioDuration.inMilliseconds)
+                                    .clamp(0.0, 1.0)
+                                : 0.0,
+                            onChanged: (value) {
+                              final newPosition = Duration(
+                                milliseconds:
+                                    (value * _audioDuration.inMilliseconds)
+                                        .toInt(),
+                              );
+                              _seekAudio(newPosition);
+                            },
+                            min: 0,
+                            max: 1,
+                            activeColor: Colors.blue,
+                            inactiveColor: Colors.grey,
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _formatDuration(_currentPosition),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: screenWidth * 0.04,
+                                ),
+                              ),
+                              Text(
+                                _formatDuration(_audioDuration),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: screenWidth * 0.04,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildControlButton(
+                        Icons.replay_10, screenWidth, _forward10Seconds),
+                    _buildControlButton(
+                      _isPlaying ? Icons.pause : Icons.play_arrow,
+                      screenWidth,
+                      _handlePlayPauseButtonPressed,
+                    ),
+                    _buildControlButton(Icons.stop, screenWidth, _stopAudio),
+                    _buildControlButton(
+                      _isRepeating ? Icons.repeat_on : Icons.repeat,
+                      screenWidth,
+                      _toggleRepeat,
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        _isDownloaded ? Icons.download_done : Icons.download,
+                        color: Colors.white,
+                      ),
+                      onPressed: _isDownloaded ? null : _downloadAudio,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildControlButton(
+      IconData icon, double screenWidth, VoidCallback onPressed) {
+    return IconButton(
+      icon: Icon(icon),
+      color: Colors.white,
+      iconSize: screenWidth * 0.08,
+      padding: EdgeInsets.all(screenWidth * 0.02),
+      onPressed: onPressed,
+    );
+  }
+}
+*/

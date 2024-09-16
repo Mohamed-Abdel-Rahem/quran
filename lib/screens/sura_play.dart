@@ -130,14 +130,27 @@ class _SuraPlayState extends State<SuraPlay> {
     }
   }
 
-  void _playAudio() async {
+  void _playAudio({int retryCount = 0}) async {
     if (_isConnected) {
       if (_audioUrl != null) {
-        await _audioPlayer.play(UrlSource(_audioUrl!));
-        if (mounted) {
-          setState(() {
-            _isPlaying = true;
-          });
+        try {
+          await _audioPlayer.stop(); // Ensure player is stopped before playing
+          await _audioPlayer.play(UrlSource(_audioUrl!));
+          if (mounted) {
+            setState(() {
+              _isPlaying = true;
+            });
+          }
+        } catch (e) {
+          if (retryCount < 3) {
+            print('Error playing audio: $e. Retrying...');
+            await Future.delayed(
+                Duration(seconds: 2 << retryCount)); // Exponential backoff
+            _playAudio(retryCount: retryCount + 1);
+          } else {
+            print('Failed to play audio after multiple attempts.');
+            _showErrorDialog('Failed to play audio. Please try again later.');
+          }
         }
       } else {
         _showErrorDialog('Audio URL is not available.');
