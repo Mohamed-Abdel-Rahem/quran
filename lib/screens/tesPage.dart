@@ -1,3 +1,4 @@
+import 'dart:async'; // Add this import
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -25,13 +26,13 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
   Duration _currentPosition = Duration.zero;
   Duration _audioDuration = Duration.zero;
   bool _dialogShown = false;
-  bool _isConnected = true; // Track internet connectivity
+  bool _isConnected = true;
 
   @override
   void initState() {
     super.initState();
     _checkFileExists('${widget.surahName}.mp3');
-    _checkConnectivity(); // Check connectivity on initialization
+    _checkInternetConnection(); // Check connectivity on start
 
     _audioPlayer.onDurationChanged.listen((duration) {
       if (mounted) {
@@ -40,6 +41,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
         });
       }
     });
+
     _audioPlayer.onPositionChanged.listen((position) {
       if (mounted) {
         setState(() {
@@ -47,6 +49,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
         });
       }
     });
+
     _audioPlayer.onPlayerComplete.listen((_) {
       if (mounted) {
         setState(() {
@@ -67,23 +70,76 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     final tempDir = await getTemporaryDirectory();
     final file = File('${tempDir.path}/$fileName');
     if (await file.exists()) {
-      setState(() {
-        _filePath = file.path;
-      });
+      if (mounted) {
+        setState(() {
+          _filePath = file.path;
+        });
+      }
     }
   }
 
-  Future<void> _checkConnectivity() async {
-    final connectivityResult = await Connectivity().checkConnectivity();
-    setState(() {
-      _isConnected = connectivityResult != ConnectivityResult.none;
-    });
+  Future<void> _checkInternetConnection() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+        setState(() {
+          _isConnected = true; // Internet is available
+        });
+      }
+    } on SocketException catch (_) {
+      setState(() {
+        _isConnected = false; // No internet connection
+      });
+      _showNoInternetDialog(); // Show no internet dialog if offline
+    }
+  }
+
+  Future<void> _showNoInternetDialog() async {
+    if (!_dialogShown && mounted) {
+      setState(() {
+        _dialogShown = true;
+      });
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('No Internet Connection'),
+            content: Text(
+                'No internet connection and the surah is not downloaded. Please connect to the internet.'),
+            actions: [
+              TextButton(
+                child: Text('OK'),
+                onPressed: () {
+                  if (mounted) {
+                    setState(() {
+                      _dialogShown = false;
+                    });
+                  }
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 
   Future<void> _downloadFile(String fileName) async {
-    setState(() {
-      _isDownloading = true;
-    });
+    await _checkInternetConnection(); // Ensure internet connectivity
+
+    if (!_isConnected) {
+      _showNoInternetDialog();
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _isDownloading = true;
+      });
+    }
 
     final ref = FirebaseStorage.instance.ref().child(fileName);
     final tempDir = await getTemporaryDirectory();
@@ -91,65 +147,90 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
 
     try {
       await ref.writeToFile(file);
-      setState(() {
-        _filePath = file.path;
-        _isDownloading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _filePath = file.path;
+          _isDownloading = false;
+        });
+      }
     } catch (e) {
       print('Failed to download: $e');
-      setState(() {
-        _isDownloading = false;
-      });
-      _showNoInternetDialog();
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+        });
+      }
+      _showNoInternetDialog(); // Show error dialog if download fails
     }
   }
 
   Future<void> _playAudio() async {
     if (_filePath != null) {
-      // Play offline
       await _audioPlayer.play(DeviceFileSource(_filePath!));
-      setState(() {
-        _isPlaying = true;
-        _isPaused = false;
-        _isStreaming = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isPlaying = true;
+          _isPaused = false;
+          _isStreaming = false;
+        });
+      }
     } else if (_isConnected) {
-      // Try streaming online
-      _playStream('${widget.surahName}.mp3');
+      await _playStream('${widget.surahName}.mp3');
     } else {
       _showNoInternetDialog();
     }
   }
 
   Future<void> _pauseAudio() async {
-    await _audioPlayer.pause();
-    setState(() {
-      _isPaused = true;
-      _isPlaying = false;
-    });
+    try {
+      await _audioPlayer.pause();
+      if (mounted) {
+        setState(() {
+          _isPaused = true;
+          _isPlaying = false;
+        });
+      }
+    } catch (e) {
+      print('Error pausing audio: $e');
+    }
   }
 
   Future<void> _resumeAudio() async {
-    await _audioPlayer.resume();
-    setState(() {
-      _isPlaying = true;
-      _isPaused = false;
-    });
+    try {
+      await _audioPlayer.resume();
+      if (mounted) {
+        setState(() {
+          _isPlaying = true;
+          _isPaused = false;
+        });
+      }
+    } catch (e) {
+      print('Error resuming audio: $e');
+    }
   }
 
   Future<void> _playStream(String fileName) async {
+    if (!_isConnected) {
+      _showNoInternetDialog();
+      return;
+    }
+
     final ref = FirebaseStorage.instance.ref().child(fileName);
     try {
       final url = await ref.getDownloadURL();
-      setState(() {
-        _streamingUrl = url;
-        _isStreaming = true;
-      });
+      if (mounted) {
+        setState(() {
+          _streamingUrl = url;
+          _isStreaming = true;
+        });
+      }
       if (_streamingUrl != null) {
         await _audioPlayer.play(UrlSource(_streamingUrl!));
-        setState(() {
-          _isPlaying = true;
-        });
+        if (mounted) {
+          setState(() {
+            _isPlaying = true;
+          });
+        }
       }
     } catch (e) {
       print('Error streaming file: $e');
@@ -158,40 +239,25 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
   }
 
   Future<void> _stopAudio() async {
-    await _audioPlayer.stop();
-    setState(() {
-      _isPlaying = false;
-      _isStreaming = false;
-      _isPaused = false;
-    });
+    try {
+      await _audioPlayer.stop();
+      if (mounted) {
+        setState(() {
+          _isPlaying = false;
+          _isStreaming = false;
+          _isPaused = false;
+        });
+      }
+    } catch (e) {
+      print('Error stopping audio: $e');
+    }
   }
 
   Future<void> _seekAudio(Duration newPosition) async {
-    await _audioPlayer.seek(newPosition);
-  }
-
-  void _showNoInternetDialog() {
-    if (!_dialogShown) {
-      _dialogShown = true;
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('No Internet Connection'),
-            content:
-                Text('Please check your internet connection and try again.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  _dialogShown = false;
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
+    try {
+      await _audioPlayer.seek(newPosition);
+    } catch (e) {
+      print('Error seeking audio: $e');
     }
   }
 
