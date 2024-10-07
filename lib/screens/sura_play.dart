@@ -1,60 +1,59 @@
-import 'dart:async';
+import 'dart:async'; // Add this import
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:internet_connection_checker/internet_connection_checker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
-class SuraPlay extends StatefulWidget {
-  final String surahName;
-  final String surahNameEnglish;
+class AudioPlayerScreen extends StatefulWidget {
+  final String surahNameArabic;
 
-  const SuraPlay({
-    super.key,
-    required this.surahName,
-    required this.surahNameEnglish,
-  });
+  AudioPlayerScreen({Key? key, required this.surahNameArabic})
+      : super(key: key);
 
   @override
-  _SuraPlayState createState() => _SuraPlayState();
+  _AudioPlayerScreenState createState() => _AudioPlayerScreenState();
 }
 
-class _SuraPlayState extends State<SuraPlay> {
+class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isDownloading = false;
   bool _isPlaying = false;
-  bool _isRepeating = false;
-  String? _audioUrl;
-  bool _isLoading = true;
-  Duration _audioDuration = Duration.zero;
+  bool _isPaused = false;
+  bool _isStreaming = false;
+  String? _filePath;
+  String? _streamingUrl;
   Duration _currentPosition = Duration.zero;
-  bool _isConnected = true;
+  Duration _audioDuration = Duration.zero;
   bool _dialogShown = false;
-  StreamSubscription<InternetConnectionStatus>? _connectivitySubscription;
-
+  bool _isConnected = true;
+  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
   @override
   void initState() {
     super.initState();
-    _checkConnectivity(); // Check the initial connectivity status
 
-    _connectivitySubscription =
-        InternetConnectionChecker().onStatusChange.listen((status) {
-      final isConnected = status == InternetConnectionStatus.connected;
-      if (!isConnected) {
-        _showNoInternetDialog();
+    // Check if file exists locally
+    _checkFileExists('${widget.surahNameArabic}.mp3').then((fileExists) {
+      if (fileExists) {
+        _playAudio(); // If file exists, play it.
       } else {
-        if (mounted) {
-          _resumeAudioIfNeeded();
-        }
+        // Check for internet connection if the file doesn't exist.
+        _checkInternetConnection().then((isConnectedd) {
+          if (isConnectedd) {
+            _playStream(
+                '${widget.surahNameArabic}.mp3'); // Play stream if connected to the internet.
+          } else {
+            _showNoInternetDialog(); // Show dialog if no internet and file not downloaded.
+          }
+        });
       }
-      setState(() {
-        _isConnected = isConnected;
-      });
+    }).catchError((error) {
+      print("Error checking file existence: $error");
     });
 
-    _getAudioUrl();
-
-    _audioPlayer.onDurationChanged.listen((Duration duration) {
+    // Audio player event listeners
+    _audioPlayer.onDurationChanged.listen((duration) {
       if (mounted) {
         setState(() {
           _audioDuration = duration;
@@ -62,7 +61,7 @@ class _SuraPlayState extends State<SuraPlay> {
       }
     });
 
-    _audioPlayer.onPositionChanged.listen((Duration position) {
+    _audioPlayer.onPositionChanged.listen((position) {
       if (mounted) {
         setState(() {
           _currentPosition = position;
@@ -70,9 +69,26 @@ class _SuraPlayState extends State<SuraPlay> {
       }
     });
 
-    _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
-      if (state == PlayerState.completed && _isRepeating) {
-        _playAudio(); // Repeat the audio
+    _audioPlayer.onPlayerComplete.listen((_) {
+      if (mounted) {
+        setState(() {
+          _isPlaying = false;
+          _isStreaming = false;
+        });
+      }
+    });
+
+    // Connectivity listener
+    _connectivitySubscription = Connectivity()
+        .onConnectivityChanged
+        .listen((ConnectivityResult result) {
+      if (result == ConnectivityResult.none) {
+        _pauseAudio(); // Pause audio when no internet
+        if (_filePath == null) {
+          _showNoInternetDialog(); // Show dialog only if file is not downloaded
+        }
+      } else if (_isPaused) {
+        _resumeAudio(); // Resume audio if internet is restored
       }
     });
   }
@@ -84,306 +100,273 @@ class _SuraPlayState extends State<SuraPlay> {
     super.dispose();
   }
 
-  Future<void> _checkConnectivity() async {
-    final isConnected = await InternetConnectionChecker().hasConnection;
-    setState(() {
-      _isConnected = isConnected;
-      if (!_isConnected) {
-        _showNoInternetDialog();
-      }
-    });
+  Future<bool> _checkFileExists(String fileName) async {
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/$fileName');
+    if (await file.exists()) {
+      setState(() {
+        _filePath = file.path;
+      });
+      return true; // File exists
+    }
+    return false; // File does not exist
   }
 
-  Future<void> _getAudioUrl() async {
-    if (!_isConnected) return;
+  Future<bool> _checkInternetConnection() async {
+    // Skip the internet check if the surah file is already downloaded
+    if (_filePath != null) {
+      return true; // Surah is downloaded, treat as connected
+    }
 
+    // Otherwise, perform the internet check
     try {
-      final storageRef = FirebaseStorage.instance.ref();
-      final audioRef = storageRef.child('${widget.surahName}.mp3');
-
-      final audioUrl = await audioRef
-          .getDownloadURL()
-          .timeout(const Duration(seconds: 30), onTimeout: () {
-        throw TimeoutException(
-            'The connection has timed out, please try again later.');
-      });
-
-      if (mounted) {
-        setState(() {
-          _audioUrl = audioUrl;
-          _isLoading = false;
-        });
-        _playAudio();
+      final result = await InternetAddress.lookup('google.com');
+      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+        return true; // Internet is available
       }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-      if (e is TimeoutException || e is SocketException) {
-        _showNoInternetDialog();
-      } else {
-        _showErrorDialog('An unexpected error occurred. Please try again.');
-      }
-      print('Error fetching URL: $e');
+    } on SocketException catch (_) {
+      return false; // No internet connection
     }
+
+    return false; // Default to no internet if something fails
   }
 
-  void _playAudio({int retryCount = 0}) async {
-    if (_isConnected) {
-      if (_audioUrl != null) {
-        try {
-          await _audioPlayer.stop(); // Ensure player is stopped before playing
-          await _audioPlayer.play(UrlSource(_audioUrl!));
-          if (mounted) {
-            setState(() {
-              _isPlaying = true;
-            });
-          }
-        } catch (e) {
-          if (retryCount < 3) {
-            print('Error playing audio: $e. Retrying...');
-            await Future.delayed(
-                Duration(seconds: 2 << retryCount)); // Exponential backoff
-            _playAudio(retryCount: retryCount + 1);
-          } else {
-            print('Failed to play audio after multiple attempts.');
-            _showErrorDialog('Failed to play audio. Please try again later.');
-          }
-        }
-      } else {
-        _showErrorDialog('Audio URL is not available.');
-      }
-    } else {
-      _showNoInternetDialog();
-    }
-  }
-
-  void _pauseAudio() async {
-    await _audioPlayer.pause();
-    if (mounted) {
+  Future<void> _showNoInternetDialog() async {
+    if (!_dialogShown && mounted) {
       setState(() {
-        _isPlaying = false;
+        _dialogShown = true; // Prevent multiple dialog displays
       });
-    }
-  }
 
-  void _stopAudio() async {
-    await _audioPlayer.stop();
-    if (mounted) {
-      setState(() {
-        _isPlaying = false;
-        _currentPosition = Duration.zero;
-      });
-    }
-  }
-
-  void _seekAudio(Duration position) {
-    _audioPlayer.seek(position);
-  }
-
-  void _forward10Seconds() {
-    if (mounted) {
-      final newPosition = _currentPosition + Duration(seconds: 10);
-      if (newPosition < _audioDuration) {
-        _seekAudio(newPosition);
-      } else {
-        _seekAudio(_audioDuration);
-      }
-    }
-  }
-
-  void _toggleRepeat() {
-    setState(() {
-      _isRepeating = !_isRepeating;
-    });
-  }
-
-  void _showNoInternetDialog() {
-    if (mounted && !_dialogShown) {
-      _dialogShown = true;
       showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext context) {
-          return AlertDialog(
+          return Dialog(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20.0),
+              borderRadius: BorderRadius.circular(20), // Rounded corners
             ),
-            titlePadding: EdgeInsets.zero,
-            contentPadding: EdgeInsets.zero,
-            content: Directionality(
-              textDirection: TextDirection.rtl,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20.0),
-                  color: Colors.black,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(20.0),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.signal_wifi_off,
-                        size: 50.0,
-                        color: Colors.white,
+            elevation: 10,
+            backgroundColor:
+                Color(0xff404E50), // Harmonious deep teal background
+            child: Container(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(
+                    Icons.signal_wifi_off,
+                    color:
+                        Colors.orangeAccent, // Softer, eye-catching icon color
+                    size: 60,
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    'لا يوجد اتصال بالإنترنت',
+                    style: TextStyle(
+                      color: Colors.white, // Title in white for good contrast
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 15),
+                  Text(
+                    'يرجى العلم بأن هذه الخاصيه بحاجه الي للإِتصال بالإِنترنت.',
+                    style: TextStyle(
+                      color: Colors
+                          .blue[100], // Softer light blue text for content
+                      fontSize: 16,
+                      height: 1.4,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 20),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor:
+                          Colors.teal[700], // Button background matches dialog
+                      backgroundColor: Colors
+                          .lightBlue[100], // Softer light blue for the button
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 30, vertical: 15), // Button padding
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(30), // Rounded button
                       ),
                     ),
-                    SizedBox(height: 20.0),
-                    Text(
-                      'لا يوجد إتصال بالإنترنت',
+                    child: Text(
+                      'حسناً',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20.0,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                      textDirection: TextDirection.rtl,
-                    ),
-                    SizedBox(height: 10.0),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      child: Text(
-                        'يرجى التأكد من اتصال جهازك بالإنترنت وإعادة المحاولة.',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16.0,
-                        ),
-                        textAlign: TextAlign.center,
-                        textDirection: TextDirection.rtl,
+                        fontSize: 18, // Button text size
+                        color:
+                            Color(0xff264864), // Dark teal text on the button
                       ),
                     ),
-                    SizedBox(height: 20.0),
-                    Divider(color: Colors.grey),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () {
-                              Navigator.of(context).pop();
-                            },
-                            child: Container(
-                              padding: EdgeInsets.all(15.0),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20.0),
-                                color: Colors.red,
-                              ),
-                              child: Text(
-                                'إغلاق',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18.0,
-                                ),
-                                textAlign: TextAlign.center,
-                                textDirection: TextDirection.rtl,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 10.0), // Added space between buttons
-                        Expanded(
-                          child: InkWell(
-                            onTap: () async {
-                              Navigator.of(context).pop();
-                              _checkConnectivity(); // Retry checking connectivity
-                            },
-                            child: Container(
-                              padding: EdgeInsets.all(15.0),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20.0),
-                                color: Colors.green,
-                              ),
-                              child: Text(
-                                'إعادة المحاولة',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18.0,
-                                ),
-                                textAlign: TextAlign.center,
-                                textDirection: TextDirection.rtl,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                    onPressed: () {
+                      if (mounted) {
+                        setState(() {
+                          _dialogShown = false; // Reset dialog flag
+                        });
+                      }
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
               ),
             ),
-          );
-        },
-      ).then((_) {
-        if (mounted) {
-          setState(() {
-            _dialogShown = false;
-          });
-        }
-      });
-    }
-  }
-
-  void _showErrorDialog(String message) {
-    if (mounted) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Error'),
-            content: Text(message),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: Text('OK'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
           );
         },
       );
     }
   }
 
-  void _resumeAudioIfNeeded() {
-    if (_audioUrl != null && !_isPlaying) {
-      _playAudio();
+  Future<void> _downloadFile(String fileName) async {
+    await _checkInternetConnection(); // Ensure internet connectivity
+
+    if (!_isConnected) {
+      _showNoInternetDialog();
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _isDownloading = true;
+      });
+    }
+
+    final ref = FirebaseStorage.instance.ref().child(fileName);
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/$fileName');
+
+    try {
+      await ref.writeToFile(file);
+      if (mounted) {
+        setState(() {
+          _filePath = file.path;
+          _isDownloading = false;
+        });
+      }
+    } catch (e) {
+      print('Failed to download: $e');
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+        });
+      }
+      _showNoInternetDialog(); // Show error dialog if download fails
     }
   }
 
-  void _handlePlayPauseButtonPressed() async {
-    if (_isLoading) return; // Prevent multiple requests
-
-    setState(() {
-      _isLoading = true; // Start loading
-    });
-
-    if (_isPlaying) {
-      _pauseAudio();
-    } else {
-      final isConnected = await InternetConnectionChecker().hasConnection;
-
-      if (isConnected) {
+  Future<void> _playAudio() async {
+    // If the file is already downloaded, skip any internet checks and play it
+    if (_filePath != null) {
+      await _audioPlayer.play(DeviceFileSource(_filePath!));
+      if (mounted) {
         setState(() {
-          _isConnected = isConnected;
+          _isPlaying = true;
+          _isPaused = false;
+          _isStreaming = false;
         });
-        _playAudio();
+      }
+    } else {
+      // File is not downloaded, check internet connection and stream if possible
+      await _checkInternetConnection();
+
+      if (_isConnected) {
+        await _playStream('${widget.surahNameArabic}.mp3');
       } else {
+        // No internet and file is not downloaded, show dialog
         _showNoInternetDialog();
       }
     }
+  }
 
-    setState(() {
-      _isLoading = false; // Stop loading
-    });
+  Future<void> _pauseAudio() async {
+    try {
+      await _audioPlayer.pause();
+      if (mounted) {
+        setState(() {
+          _isPaused = true;
+          _isPlaying = false;
+        });
+      }
+    } catch (e) {
+      print('Error pausing audio: $e');
+    }
+  }
+
+  Future<void> _resumeAudio() async {
+    try {
+      await _audioPlayer.resume();
+      if (mounted) {
+        setState(() {
+          _isPlaying = true;
+          _isPaused = false;
+        });
+      }
+    } catch (e) {
+      print('Error resuming audio: $e');
+    }
+  }
+
+  Future<void> _playStream(String fileName) async {
+    // First, ensure internet connection before fetching the URL
+    await _checkInternetConnection();
+
+    if (!_isConnected) {
+      _showNoInternetDialog();
+      return;
+    }
+
+    final ref = FirebaseStorage.instance.ref().child(fileName);
+    try {
+      final url = await ref.getDownloadURL();
+      if (mounted) {
+        setState(() {
+          _streamingUrl = url;
+          _isStreaming = true;
+        });
+      }
+
+      // Check connectivity again before playing
+      if (!_isConnected) {
+        _showNoInternetDialog();
+        return;
+      }
+
+      await _audioPlayer.play(UrlSource(_streamingUrl!));
+      if (mounted) {
+        setState(() {
+          _isPlaying = true;
+        });
+      }
+    } catch (e) {
+      print('Error streaming file: $e');
+      _showNoInternetDialog(); // Show the dialog for streaming errors
+    }
+  }
+
+  Future<void> _stopAudio() async {
+    try {
+      await _audioPlayer.stop();
+      if (mounted) {
+        setState(() {
+          _isPlaying = false;
+          _isStreaming = false;
+          _isPaused = false;
+        });
+      }
+    } catch (e) {
+      print('Error stopping audio: $e');
+    }
+  }
+
+  Future<void> _seekAudio(Duration newPosition) async {
+    try {
+      await _audioPlayer.seek(newPosition);
+    } catch (e) {
+      print('Error seeking audio: $e');
+    }
   }
 
   @override
@@ -393,6 +376,20 @@ class _SuraPlayState extends State<SuraPlay> {
     final double screenHeight = screenSize.height;
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'الإستماع للقرأن الكريم',
+          style: TextStyle(
+            color: Colors.white, // Text color matching the screen theme
+            fontWeight: FontWeight.bold,
+            fontSize: screenWidth * 0.05,
+            fontFamily: 'Tajawal',
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Color(0xff425052), // Deep teal color
+        elevation: 5, // Add some shadow
+      ),
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
@@ -435,19 +432,21 @@ class _SuraPlayState extends State<SuraPlay> {
                 ),
                 SizedBox(height: screenHeight * 0.03),
                 Text(
-                  widget.surahName,
+                  'القارئ محمد السمرجي',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: screenWidth * 0.06,
                     fontWeight: FontWeight.bold,
+                    fontFamily: 'Tajawal',
                   ),
                 ),
                 SizedBox(height: screenHeight * 0.023),
                 Text(
-                  widget.surahNameEnglish,
+                  'سورة ${widget.surahNameArabic}',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: screenWidth * 0.04,
+                    fontSize: screenWidth * 0.05,
+                    fontFamily: 'Tajawal',
                   ),
                 ),
                 SizedBox(height: screenHeight * 0.05),
@@ -503,65 +502,50 @@ class _SuraPlayState extends State<SuraPlay> {
                     ),
                   ],
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildControlButton(
-                        Icons.replay_10, screenWidth, _forward10Seconds),
-                    _buildControlButton(
-                      _isPlaying ? Icons.pause : Icons.play_arrow,
-                      screenWidth,
-                      _handlePlayPauseButtonPressed,
-                    ),
-                    _buildControlButton(Icons.stop, screenWidth, _stopAudio),
-                    _buildControlButton(
-                      _isRepeating ? Icons.repeat_on : Icons.repeat,
-                      screenWidth,
-                      _toggleRepeat,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            top: -screenSize.width * 0.25,
-            right: -screenSize.width * 0.25,
-            child: Image.asset(
-              'assets/ellipse/Ellipse 10.png',
-              width: screenSize.width * 1.1,
-              height: screenSize.width * 1.1,
-            ),
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: AppBar(
-              backgroundColor: const Color(0xff4A5759),
-              automaticallyImplyLeading: false,
-              actions: [
-                IconButton(
-                  icon: const Icon(
-                    Icons.arrow_right,
-                    color: Colors.white,
-                    size: 40,
+                SizedBox(height: screenHeight * 0.05),
+                if (_isDownloading)
+                  CircularProgressIndicator()
+                else
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildControlButton(
+                        _filePath != null ? Icons.check : Icons.download,
+                        screenWidth,
+                        _filePath != null
+                            ? () {} // Do nothing if surah is already downloaded
+                            : () =>
+                                _downloadFile('${widget.surahNameArabic}.mp3'),
+                        disabled: _isDownloading,
+                      ),
+                      _buildControlButton(
+                        _isPlaying ? Icons.pause : Icons.play_arrow,
+                        screenWidth,
+                        () {
+                          if (_isPlaying) {
+                            _pauseAudio();
+                          } else {
+                            _playAudio();
+                          }
+                        },
+                      ),
+                      _buildControlButton(Icons.fast_forward, screenWidth, () {
+                        final newPosition =
+                            _currentPosition + Duration(seconds: 10);
+                        _seekAudio(newPosition < _audioDuration
+                            ? newPosition
+                            : _audioDuration);
+                      }),
+                      _buildControlButton(Icons.fast_rewind, screenWidth, () {
+                        final newPosition =
+                            _currentPosition - Duration(seconds: 10);
+                        _seekAudio(newPosition < Duration.zero
+                            ? Duration.zero
+                            : newPosition);
+                      }),
+                    ],
                   ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                ),
               ],
-              title: Text(
-                widget.surahName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'Tajawal',
-                ),
-              ),
-              centerTitle: true,
-              elevation: 0,
             ),
           ),
         ],
@@ -569,25 +553,41 @@ class _SuraPlayState extends State<SuraPlay> {
     );
   }
 
-  String _formatDuration(Duration duration) {
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  Widget _buildControlButton(
+      IconData icon, double screenWidth, Function() onPressed,
+      {bool disabled = false}) {
+    return GestureDetector(
+      onTap: disabled ? null : onPressed,
+      child: Container(
+        width: screenWidth * 0.15, // Make buttons responsive
+        height: screenWidth * 0.15,
+        decoration: BoxDecoration(
+          color: disabled
+              ? Colors.grey
+              : Color(0xff264864), // Gray out button if disabled
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 8.0,
+              spreadRadius: 2.0,
+              offset: Offset(2.0, 2.0),
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          color: Colors.white,
+          size: 30,
+        ),
+      ),
+    );
   }
 
-  Widget _buildControlButton(
-      IconData icon, double screenWidth, VoidCallback onPressed) {
-    return IconButton(
-      icon: _isLoading && icon == Icons.play_arrow
-          ? CircularProgressIndicator(
-              color: Colors.white,
-              strokeWidth: 2.0,
-            )
-          : Icon(icon),
-      color: Colors.white,
-      iconSize: screenWidth * 0.08,
-      padding: EdgeInsets.all(screenWidth * 0.02),
-      onPressed: onPressed,
-    );
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes);
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
   }
 }

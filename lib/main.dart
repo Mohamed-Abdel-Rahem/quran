@@ -7,7 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:quran/generated/l10n.dart';
 import 'package:quran/screens/home_page.dart';
-import 'package:quran/screens/tesPage.dart';
+import 'package:quran/screens/sura_play.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
