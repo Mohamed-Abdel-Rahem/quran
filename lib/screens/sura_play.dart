@@ -21,6 +21,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
   bool _isDownloading = false;
   bool _isPlaying = false;
   bool _isPaused = false;
+  // ignore: unused_field
   bool _isStreaming = false;
   String? _filePath;
   String? _streamingUrl;
@@ -28,6 +29,8 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
   Duration _audioDuration = Duration.zero;
   bool _dialogShown = false;
   bool _isConnected = true;
+  double _downloadProgress = 0.0; // To store the download progress
+
   StreamSubscription<ConnectivityResult>? _connectivitySubscription;
   @override
   void initState() {
@@ -39,8 +42,8 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
         _playAudio(); // If file exists, play it.
       } else {
         // Check for internet connection if the file doesn't exist.
-        _checkInternetConnection().then((isConnectedd) {
-          if (isConnectedd) {
+        _checkInternetConnection().then((isConnecteddd) {
+          if (isConnecteddd) {
             _playStream(
                 '${widget.surahNameArabic}.mp3'); // Play stream if connected to the internet.
           } else {
@@ -231,6 +234,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     if (mounted) {
       setState(() {
         _isDownloading = true;
+        _downloadProgress = 0.0; // Reset download progress
       });
     }
 
@@ -239,11 +243,22 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     final file = File('${tempDir.path}/$fileName');
 
     try {
-      await ref.writeToFile(file);
+      final task = ref.writeToFile(file);
+      task.snapshotEvents.listen((TaskSnapshot snapshot) {
+        if (mounted) {
+          setState(() {
+            _downloadProgress = snapshot.bytesTransferred /
+                snapshot.totalBytes; // Update download progress
+          });
+        }
+      });
+
+      await task; // Wait for the download to complete
       if (mounted) {
         setState(() {
           _filePath = file.path;
           _isDownloading = false;
+          _downloadProgress = 0.0; // Reset progress after download
         });
       }
     } catch (e) {
@@ -251,6 +266,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
       if (mounted) {
         setState(() {
           _isDownloading = false;
+          _downloadProgress = 0.0; // Reset progress if download fails
         });
       }
       _showNoInternetDialog(); // Show error dialog if download fails
@@ -503,48 +519,45 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                   ],
                 ),
                 SizedBox(height: screenHeight * 0.05),
-                if (_isDownloading)
-                  CircularProgressIndicator()
-                else
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildControlButton(
-                        _filePath != null ? Icons.check : Icons.download,
-                        screenWidth,
-                        _filePath != null
-                            ? () {} // Do nothing if surah is already downloaded
-                            : () =>
-                                _downloadFile('${widget.surahNameArabic}.mp3'),
-                        disabled: _isDownloading,
-                      ),
-                      _buildControlButton(
-                        _isPlaying ? Icons.pause : Icons.play_arrow,
-                        screenWidth,
-                        () {
-                          if (_isPlaying) {
-                            _pauseAudio();
-                          } else {
-                            _playAudio();
-                          }
-                        },
-                      ),
-                      _buildControlButton(Icons.fast_forward, screenWidth, () {
-                        final newPosition =
-                            _currentPosition + Duration(seconds: 10);
-                        _seekAudio(newPosition < _audioDuration
-                            ? newPosition
-                            : _audioDuration);
-                      }),
-                      _buildControlButton(Icons.fast_rewind, screenWidth, () {
-                        final newPosition =
-                            _currentPosition - Duration(seconds: 10);
-                        _seekAudio(newPosition < Duration.zero
-                            ? Duration.zero
-                            : newPosition);
-                      }),
-                    ],
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildControlButtonn(
+                      _filePath != null ? Icons.check : Icons.download,
+                      screenWidth,
+                      _filePath != null
+                          ? () {} // Do nothing if surah is already downloaded
+                          : () =>
+                              _downloadFile('${widget.surahNameArabic}.mp3'),
+                      disabled: _isDownloading,
+                    ),
+                    _buildControlButton(
+                      _isPlaying ? Icons.pause : Icons.play_arrow,
+                      screenWidth,
+                      () {
+                        if (_isPlaying) {
+                          _pauseAudio();
+                        } else {
+                          _playAudio();
+                        }
+                      },
+                    ),
+                    _buildControlButton(Icons.fast_forward, screenWidth, () {
+                      final newPosition =
+                          _currentPosition + Duration(seconds: 10);
+                      _seekAudio(newPosition < _audioDuration
+                          ? newPosition
+                          : _audioDuration);
+                    }),
+                    _buildControlButton(Icons.fast_rewind, screenWidth, () {
+                      final newPosition =
+                          _currentPosition - Duration(seconds: 10);
+                      _seekAudio(newPosition < Duration.zero
+                          ? Duration.zero
+                          : newPosition);
+                    }),
+                  ],
+                ),
               ],
             ),
           ),
@@ -557,7 +570,18 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
       IconData icon, double screenWidth, Function() onPressed,
       {bool disabled = false}) {
     return GestureDetector(
-      onTap: disabled ? null : onPressed,
+      onTap: disabled
+          ? null
+          : () {
+              // Check internet connection before playing audio
+              _checkInternetConnection().then((isConnected) {
+                if (isConnected) {
+                  onPressed(); // Call the original onPressed function
+                } else {
+                  _showNoInternetDialog(); // Show no internet dialog
+                }
+              });
+            },
       child: Container(
         width: screenWidth * 0.15, // Make buttons responsive
         height: screenWidth * 0.15,
@@ -575,10 +599,70 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
             ),
           ],
         ),
-        child: Icon(
-          icon,
-          color: Colors.white,
-          size: 30,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(
+              icon,
+              color: Colors.white,
+              size: 30,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildControlButtonn(
+      IconData icon, double screenWidth, Function() onPressed,
+      {bool disabled = false}) {
+    return GestureDetector(
+      onTap: disabled
+          ? null
+          : () {
+              // Check internet connection before downloading
+              _checkInternetConnection().then((isConnected) {
+                if (isConnected) {
+                  onPressed(); // Call the original onPressed function
+                } else {
+                  _showNoInternetDialog(); // Show no internet dialog
+                }
+              });
+            },
+      child: Container(
+        width: screenWidth * 0.15, // Make buttons responsive
+        height: screenWidth * 0.15,
+        decoration: BoxDecoration(
+          color: disabled
+              ? Colors.grey
+              : Color(0xff264864), // Gray out button if disabled
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 8.0,
+              spreadRadius: 2.0,
+              offset: Offset(2.0, 2.0),
+            ),
+          ],
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(
+              icon,
+              color: Colors.white,
+              size: 30,
+            ),
+            if (_isDownloading) // Show progress indicator when downloading
+              CircularProgressIndicator(
+                value: _downloadProgress,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                    Colors.blue), // Progress color
+                backgroundColor: Colors
+                    .transparent, // Background color of the progress circle
+              ),
+          ],
         ),
       ),
     );
