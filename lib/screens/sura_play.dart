@@ -28,6 +28,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
   Duration _currentPosition = Duration.zero;
   Duration _audioDuration = Duration.zero;
   bool _dialogShown = false;
+  // ignore: prefer_final_fields
   bool _isConnected = true;
   double _downloadProgress = 0.0; // To store the download progress
 
@@ -273,6 +274,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     final tempDir = await getTemporaryDirectory();
     final file = File('${tempDir.path}/$fileName');
 
+    // ignore: unused_local_variable
     int downloadedBytes = 0;
     try {
       if (await file.exists()) {
