@@ -82,16 +82,28 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     });
 
     // Connectivity listener
+    // Connectivity listener
     _connectivitySubscription = Connectivity()
         .onConnectivityChanged
         .listen((ConnectivityResult result) {
       if (result == ConnectivityResult.none) {
+        // Pause download if downloading
+        if (_isDownloading) {
+          _pauseDownload();
+        }
         _pauseAudio(); // Pause audio when no internet
         if (_filePath == null) {
           _showNoInternetDialog(); // Show dialog only if file is not downloaded
         }
-      } else if (_isPaused) {
-        _resumeAudio(); // Resume audio if internet is restored
+      } else {
+        // Resume download if needed
+        if (!_isConnected && _isDownloading) {
+          _resumeDownload('${widget.surahNameArabic}.mp3');
+        }
+
+        if (_isPaused) {
+          _resumeAudio(); // Resume audio if internet is restored
+        }
       }
     });
   }
@@ -101,6 +113,25 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     _audioPlayer.dispose();
     _connectivitySubscription?.cancel();
     super.dispose();
+  }
+
+  Future<void> _pauseDownload() async {
+    if (_isDownloading) {
+      try {
+        // Pause the download and save the current progress
+        setState(() {
+          _isDownloading = false;
+        });
+      } catch (e) {
+        print('Error pausing download: $e');
+      }
+    }
+  }
+
+  Future<void> _resumeDownload(String fileName) async {
+    // Resume download from where it was paused
+    await _downloadFile(
+        fileName); // You can enhance this further with custom logic if needed
   }
 
   Future<bool> _checkFileExists(String fileName) async {
@@ -242,34 +273,42 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     final tempDir = await getTemporaryDirectory();
     final file = File('${tempDir.path}/$fileName');
 
+    int downloadedBytes = 0;
     try {
+      if (await file.exists()) {
+        downloadedBytes =
+            file.lengthSync(); // Get how much of the file is already downloaded
+      }
+
       final task = ref.writeToFile(file);
+
       task.snapshotEvents.listen((TaskSnapshot snapshot) {
         if (mounted) {
           setState(() {
-            _downloadProgress = snapshot.bytesTransferred /
-                snapshot.totalBytes; // Update download progress
+            _downloadProgress = snapshot.bytesTransferred / snapshot.totalBytes;
           });
         }
       });
 
       await task; // Wait for the download to complete
+
       if (mounted) {
         setState(() {
           _filePath = file.path;
           _isDownloading = false;
-          _downloadProgress = 0.0; // Reset progress after download
+          _downloadProgress = 0.0;
         });
       }
     } catch (e) {
-      print('Failed to download: $e');
+      // Handle any download interruption (e.g., connection lost)
+      print('Download interrupted: $e');
+
+      // Save the current progress state
       if (mounted) {
         setState(() {
           _isDownloading = false;
-          _downloadProgress = 0.0; // Reset progress if download fails
         });
       }
-      _showNoInternetDialog(); // Show error dialog if download fails
     }
   }
 
