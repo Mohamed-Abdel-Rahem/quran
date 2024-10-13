@@ -1203,3 +1203,52 @@ class _SuraPlayState extends State<SuraPlay> {
   }
 }
 */
+
+
+/* Widget _buildControlButton(
+      IconData icon, double screenWidth, Function() onPressed,
+      {bool disabled = false}) {
+    return GestureDetector(
+      onTap: disabled
+          ? null
+          : () {
+              // Check internet connection before playing audio
+              _checkInternetConnection().then((isConnected) {
+                if (isConnected) {
+                  onPressed(); // Call the original onPressed function
+                } else {
+                  _showNoInternetDialog(); // Show no internet dialog
+                }
+              });
+            },
+      child: Container(
+        width: screenWidth * 0.15, // Make buttons responsive
+        height: screenWidth * 0.15,
+        decoration: BoxDecoration(
+          color: disabled
+              ? Colors.grey
+              : Color(0xff264864), // Gray out button if disabled
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 8.0,
+              spreadRadius: 2.0,
+              offset: Offset(2.0, 2.0),
+            ),
+          ],
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(
+              icon,
+              color: Colors.white,
+              size: 30,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+*/

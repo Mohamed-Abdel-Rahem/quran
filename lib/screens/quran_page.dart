@@ -113,8 +113,8 @@ class _QuranPageState extends State<QuranPage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                const CustomButtonRow(),
+
+                // const CustomButtonRow(),
                 ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),

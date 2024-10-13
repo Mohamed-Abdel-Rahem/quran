@@ -263,19 +263,18 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
       return;
     }
 
-    if (mounted) {
-      setState(() {
-        _isDownloading = true;
-        _downloadProgress = 0.0; // Reset download progress
-      });
-    }
+    setState(() {
+      _isDownloading = true;
+      _downloadProgress = 0.0; // Reset download progress
+    });
 
     final ref = FirebaseStorage.instance.ref().child(fileName);
     final tempDir = await getTemporaryDirectory();
     final file = File('${tempDir.path}/$fileName');
 
-    // ignore: unused_local_variable
+    // Store current downloaded bytes to resume later if needed
     int downloadedBytes = 0;
+
     try {
       if (await file.exists()) {
         downloadedBytes =
@@ -285,9 +284,11 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
       final task = ref.writeToFile(file);
 
       task.snapshotEvents.listen((TaskSnapshot snapshot) {
+        // Update the download progress
         if (mounted) {
           setState(() {
-            _downloadProgress = snapshot.bytesTransferred / snapshot.totalBytes;
+            _downloadProgress = snapshot.bytesTransferred /
+                snapshot.totalBytes; // Calculate the progress
           });
         }
       });
@@ -297,18 +298,17 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
       if (mounted) {
         setState(() {
           _filePath = file.path;
-          _isDownloading = false;
-          _downloadProgress = 0.0;
+          _isDownloading = false; // Reset downloading state
+          _downloadProgress = 0.0; // Reset progress indicator
         });
       }
     } catch (e) {
       // Handle any download interruption (e.g., connection lost)
       print('Download interrupted: $e');
 
-      // Save the current progress state
       if (mounted) {
         setState(() {
-          _isDownloading = false;
+          _isDownloading = false; // Reset downloading state
         });
       }
     }
@@ -563,40 +563,42 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildControlButtonn(
-                      _filePath != null ? Icons.check : Icons.download,
-                      screenWidth,
-                      _filePath != null
-                          ? () {} // Do nothing if surah is already downloaded
-                          : () =>
-                              _downloadFile('${widget.surahNameArabic}.mp3'),
-                      disabled: _isDownloading,
-                    ),
                     _buildControlButton(
-                      _isPlaying ? Icons.pause : Icons.play_arrow,
-                      screenWidth,
-                      () {
-                        if (_isPlaying) {
-                          _pauseAudio();
-                        } else {
-                          _playAudio();
-                        }
-                      },
-                    ),
+                        _filePath != null ? Icons.check : Icons.download,
+                        screenWidth,
+                        _filePath != null
+                            ? () {} // Do nothing if surah is already downloaded
+                            : () {
+                                if (!_isDownloading) {
+                                  _downloadFile(
+                                      '${widget.surahNameArabic}.mp3');
+                                }
+                              },
+                        disabled: _isDownloading,
+                        isDownloadButton: true),
+                    _buildControlButton(
+                        _isPlaying ? Icons.pause : Icons.play_arrow,
+                        screenWidth, () {
+                      if (_isPlaying) {
+                        _pauseAudio();
+                      } else {
+                        _playAudio();
+                      }
+                    }, isDownloadButton: false),
                     _buildControlButton(Icons.fast_forward, screenWidth, () {
                       final newPosition =
                           _currentPosition + Duration(seconds: 10);
                       _seekAudio(newPosition < _audioDuration
                           ? newPosition
                           : _audioDuration);
-                    }),
+                    }, isDownloadButton: false),
                     _buildControlButton(Icons.fast_rewind, screenWidth, () {
                       final newPosition =
                           _currentPosition - Duration(seconds: 10);
                       _seekAudio(newPosition < Duration.zero
                           ? Duration.zero
                           : newPosition);
-                    }),
+                    }, isDownloadButton: false),
                   ],
                 ),
               ],
@@ -609,54 +611,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
 
   Widget _buildControlButton(
       IconData icon, double screenWidth, Function() onPressed,
-      {bool disabled = false}) {
-    return GestureDetector(
-      onTap: disabled
-          ? null
-          : () {
-              // Check internet connection before playing audio
-              _checkInternetConnection().then((isConnected) {
-                if (isConnected) {
-                  onPressed(); // Call the original onPressed function
-                } else {
-                  _showNoInternetDialog(); // Show no internet dialog
-                }
-              });
-            },
-      child: Container(
-        width: screenWidth * 0.15, // Make buttons responsive
-        height: screenWidth * 0.15,
-        decoration: BoxDecoration(
-          color: disabled
-              ? Colors.grey
-              : Color(0xff264864), // Gray out button if disabled
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 8.0,
-              spreadRadius: 2.0,
-              offset: Offset(2.0, 2.0),
-            ),
-          ],
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Icon(
-              icon,
-              color: Colors.white,
-              size: 30,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildControlButtonn(
-      IconData icon, double screenWidth, Function() onPressed,
-      {bool disabled = false}) {
+      {bool disabled = false, bool isDownloadButton = false}) {
     return GestureDetector(
       onTap: disabled
           ? null
@@ -695,13 +650,19 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
               color: Colors.white,
               size: 30,
             ),
-            if (_isDownloading) // Show progress indicator when downloading
-              CircularProgressIndicator(
-                value: _downloadProgress,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                    Colors.blue), // Progress color
-                backgroundColor: Colors
-                    .transparent, // Background color of the progress circle
+            if (isDownloadButton &&
+                _isDownloading) // Show progress only on the download button
+              Positioned(
+                child: CircularProgressIndicator(
+                  value: _downloadProgress,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Colors.blueAccent, // Progress color
+                  ),
+                  backgroundColor: Colors.white.withOpacity(
+                      0.2), // Background color of the progress circle
+                  strokeWidth:
+                      4.0, // Adjust the thickness of the progress indicator
+                ),
               ),
           ],
         ),

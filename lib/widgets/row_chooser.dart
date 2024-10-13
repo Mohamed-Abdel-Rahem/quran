@@ -18,7 +18,6 @@ class _CustomButtonRowState extends State<CustomButtonRow> {
       children: [
         _buildButton('سورة'),
         const SizedBox(width: 20), // Adjust spacing as needed
-        _buildButton('الأجزاء'),
         const SizedBox(width: 20), // Adjust spacing as needed
         _buildButton('المفضلة'),
       ],
