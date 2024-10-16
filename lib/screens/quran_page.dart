@@ -4,7 +4,6 @@ import 'package:quran/screens/sura_play.dart';
 import 'package:quran/widgets/backgroun_build.dart';
 import 'package:quran/widgets/custom_list_tile.dart';
 import 'package:quran/widgets/custom_text_widget.dart';
-import 'package:quran/widgets/row_chooser.dart';
 
 class QuranPage extends StatefulWidget {
   QuranPage({super.key});

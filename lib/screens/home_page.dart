@@ -15,14 +15,15 @@ class _HomePageState extends State<HomePage> {
   int selectedIndex = 0;
   List<Widget> tabs = [
     QuranPage(),
-    const RoquiaPage(),
+    const RoquiaPage(), // RoquiaPage will only start audio when selected
     const MotonPage(),
-    const MorePage()
+    const MorePage(),
   ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 38, 44, 46),
+      backgroundColor: const Color.fromARGB(255, 38, 44, 46),
       bottomNavigationBar: ClipRRect(
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(8.0),
@@ -34,9 +35,8 @@ class _HomePageState extends State<HomePage> {
           ),
           child: BottomNavigationBar(
             type: BottomNavigationBarType.fixed,
-            backgroundColor: Colors
-                .transparent, // Transparent background for BottomNavigationBar
-            elevation: 0, // Removing any shadow
+            backgroundColor: Colors.transparent,
+            elevation: 0,
             items: <BottomNavigationBarItem>[
               BottomNavigationBarItem(
                 icon: ImageIcon(
@@ -76,13 +76,16 @@ class _HomePageState extends State<HomePage> {
             unselectedFontSize: 15,
             onTap: (index) {
               setState(() {
-                selectedIndex = index;
+                selectedIndex = index; // Notify the tabs when the index changes
               });
             },
           ),
         ),
       ),
-      body: tabs[selectedIndex],
+      body: IndexedStack(
+        index: selectedIndex,
+        children: tabs,
+      ),
     );
   }
 }

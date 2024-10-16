@@ -50,16 +50,6 @@ class CustomListTile extends StatelessWidget {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  icon: Icon(
-                    Icons.bookmark_border,
-                    color: Colors.white,
-                    size: screenSize.width * 0.05,
-                  ),
-                  onPressed: () {
-                    // Add your bookmark action here
-                  },
-                ),
                 SizedBox(
                     width: screenSize.width * 0.02), // Spacing between icons
                 Container(

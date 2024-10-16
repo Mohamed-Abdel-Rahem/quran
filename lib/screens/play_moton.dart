@@ -5,18 +5,17 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:quran/widgets/backgroun_build.dart';
+import 'package:quran/widgets/custom_text_widget.dart';
 
-class AudioPlayerScreen extends StatefulWidget {
-  final String surahNameArabic;
-
-  AudioPlayerScreen({Key? key, required this.surahNameArabic})
-      : super(key: key);
-
+class PlayMoton extends StatefulWidget {
+  const PlayMoton({super.key, required this.motonName});
+  final String motonName;
   @override
-  _AudioPlayerScreenState createState() => _AudioPlayerScreenState();
+  State<PlayMoton> createState() => _PlayMotonState();
 }
 
-class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
+class _PlayMotonState extends State<PlayMoton> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isDownloading = false;
   bool _isPlaying = false;
@@ -38,7 +37,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     super.initState();
 
     // Check if file exists locally
-    _checkFileExists('${widget.surahNameArabic}.mp3').then((fileExists) {
+    _checkFileExists('${widget.motonName}.mp3').then((fileExists) {
       if (fileExists) {
         _playAudio(); // If file exists, play it.
       } else {
@@ -46,7 +45,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
         _checkInternetConnection().then((isConnecteddd) {
           if (isConnecteddd) {
             _playStream(
-                '${widget.surahNameArabic}.mp3'); // Play stream if connected to the internet.
+                '${widget.motonName}.mp3'); // Play stream if connected to the internet.
           } else {
             _showNoInternetDialog(); // Show dialog if no internet and file not downloaded.
           }
@@ -99,7 +98,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
       } else {
         // Resume download if needed
         if (!_isConnected && _isDownloading) {
-          _resumeDownload('${widget.surahNameArabic}.mp3');
+          _resumeDownload('${widget.motonName}.mp3');
         }
 
         if (_isPaused) {
@@ -330,7 +329,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
       await _checkInternetConnection();
 
       if (_isConnected) {
-        await _playStream('${widget.surahNameArabic}.mp3');
+        await _playStream('${widget.motonName}.mp3');
       } else {
         // No internet and file is not downloaded, show dialog
         _showNoInternetDialog();
@@ -433,34 +432,47 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     final double screenHeight = screenSize.height;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'الإستماع للقرأن الكريم',
-          style: TextStyle(
-            color: Colors.white, // Text color matching the screen theme
-            fontWeight: FontWeight.bold,
-            fontSize: screenWidth * 0.05,
-            fontFamily: 'Tajawal',
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: Color(0xff425052), // Deep teal color
-        elevation: 5, // Add some shadow
-      ),
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          Image.asset(
-            'assets/images/backgroundsura.png',
-            fit: BoxFit.cover,
-            width: screenWidth,
-            height: screenHeight,
+          const BackgrounBuild(),
+          Positioned(
+            top: -screenSize.width * 0.25,
+            right: -screenSize.width * 0.25,
+            child: Image.asset(
+              'assets/ellipse/Ellipse 10.png',
+              width: screenSize.width * 1.1,
+              height: screenSize.width * 1.1,
+            ),
           ),
-          Container(
-            color: Colors.black.withOpacity(0.5),
+          // Content
+          SingleChildScrollView(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                SizedBox(height: screenSize.height * 0.09),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.arrow_left,
+                        color: Colors.white,
+                        size: 38,
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: CustomTextWidget(
+                        text: widget.motonName,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: screenSize.height * 0.05),
                 Container(
                   width: screenWidth * 0.55,
                   height: screenWidth * 0.55,
@@ -487,7 +499,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: screenHeight * 0.03),
+                SizedBox(height: screenHeight * 0.07),
                 Text(
                   'القارئ محمد السمرجي',
                   style: TextStyle(
@@ -499,14 +511,13 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                 ),
                 SizedBox(height: screenHeight * 0.023),
                 Text(
-                  'سورة ${widget.surahNameArabic}',
+                  widget.motonName,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: screenWidth * 0.05,
                     fontFamily: 'Tajawal',
                   ),
                 ),
-                SizedBox(height: screenHeight * 0.05),
                 Column(
                   children: [
                     Container(
@@ -570,8 +581,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                             ? () {} // Do nothing if surah is already downloaded
                             : () {
                                 if (!_isDownloading) {
-                                  _downloadFile(
-                                      '${widget.surahNameArabic}.mp3');
+                                  _downloadFile(widget.motonName);
                                 }
                               },
                         disabled: _isDownloading,

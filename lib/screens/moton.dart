@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quran/screens/play_moton.dart';
 import 'package:quran/widgets/backgroun_build.dart';
 import 'package:quran/widgets/custom_container.dart';
 import 'package:quran/widgets/custom_text_widget.dart';
@@ -8,6 +9,7 @@ class MotonPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    List<String> motonn = ['متن الجزرية', 'متن تحفة الأطفال'];
     final screenSize = MediaQuery.of(context).size;
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -43,19 +45,44 @@ class MotonPage extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Expanded(
-                            child: CustomContainer(
-                          text: 'متن تحفة الأطفال',
-                          image: 'assets/images/child.png',
-                        )),
+                        // Remove Expanded from GestureDetector, wrap the GestureDetector around the child
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => PlayMoton(
+                                          motonName: motonn[1],
+                                        )),
+                              );
+                            },
+                            child: const CustomContainer(
+                              text: 'متن تحفة الأطفال',
+                              image: 'assets/images/child.png',
+                            ),
+                          ),
+                        ),
                         SizedBox(
                           width: screenSize.width * 0.05,
                         ), // Space between the two containers
-                        const Expanded(
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => PlayMoton(
+                                          motonName: motonn[0],
+                                        )),
+                              );
+                            },
                             child: CustomContainer(
-                          text: 'متن الجزرية',
-                          image: 'assets/images/elge.png',
-                        )),
+                              text: 'متن الجزرية',
+                              image: 'assets/images/elge.png',
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -63,7 +90,6 @@ class MotonPage extends StatelessWidget {
               ),
             ],
           ),
-          // content
         ],
       ),
     );
