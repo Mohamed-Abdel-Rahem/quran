@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:quran/screens/developer_.dart';
 import 'package:quran/screens/reader_page.dart';
+import 'package:quran/services/facebok.dart';
+import 'package:quran/services/telegram.dart';
+import 'package:quran/services/youtube.dart';
 import 'package:quran/widgets/backgroun_build.dart';
 import 'package:quran/widgets/custom_text_widget.dart';
 
@@ -59,7 +62,7 @@ class MorePage extends StatelessWidget {
                 SizedBox(height: screenSize.height * 0.05),
                 Padding(
                   padding:
-                      EdgeInsets.symmetric(horizontal: screenSize.width * 0.04),
+                      EdgeInsets.symmetric(horizontal: screenSize.width * 0.01),
                   child: Container(
                     decoration: BoxDecoration(
                       color: Colors.transparent,
@@ -100,33 +103,46 @@ class MorePage extends StatelessWidget {
                                 SizedBox(
                                   height: screenSize.width * 0.03,
                                 ),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              const ReaderDetailsPage()),
-                                    );
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.amber,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 30, vertical: 12),
-                                    textStyle: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                Row(
+                                  children: [
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const ReaderDetailsPage()),
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.amber,
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        textStyle: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      child: const Text('معرفة المزيد'),
                                     ),
-                                  ),
-                                  child: const Text('معرفة المزيد'),
-                                ),
+                                    iconCreate(
+                                      onPressed: launchFacebook,
+                                      iconPath: 'assets/icons/facebook.png',
+                                    ),
+                                    iconCreate(
+                                      onPressed: launchTelegram,
+                                      iconPath: 'assets/icons/telegram.png',
+                                    ),
+                                    iconCreate(
+                                      onPressed: launchYouTube,
+                                      iconPath: 'assets/icons/youtube.png',
+                                    ),
+                                  ],
+                                )
                               ],
                             ),
                           ),
-                          SizedBox(
-                              width: screenSize.width *
-                                  0.02), // Space between text and image
                           Align(
                             alignment: Alignment.centerRight,
                             child: Image.asset(
@@ -207,6 +223,17 @@ class MorePage extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget iconCreate(
+      {required VoidCallback onPressed, required String iconPath}) {
+    return IconButton(
+      iconSize: 2,
+      onPressed: onPressed,
+      icon: Image.asset(
+        iconPath,
       ),
     );
   }

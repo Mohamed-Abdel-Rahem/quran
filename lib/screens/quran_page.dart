@@ -22,9 +22,8 @@ class _QuranPageState extends State<QuranPage> {
     // Filter surahs based on the search query
     List<Map<String, dynamic>> filteredSurahs = surahs.where((sura) {
       return sura['nameArabic']
-              .toLowerCase()
-              .contains(searchQuery.toLowerCase()) ||
-          sura['nameEnglish'].toLowerCase().contains(searchQuery.toLowerCase());
+          .toLowerCase()
+          .contains(searchQuery.toLowerCase());
     }).toList();
 
     return Scaffold(

@@ -587,17 +587,17 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                     }, isDownloadButton: false),
                     buildControlButton(Icons.fast_forward, screenWidth, () {
                       final newPosition =
-                          _currentPosition + Duration(seconds: 10);
-                      _seekAudio(newPosition < _audioDuration
-                          ? newPosition
-                          : _audioDuration);
-                    }, isDownloadButton: false),
-                    buildControlButton(Icons.fast_rewind, screenWidth, () {
-                      final newPosition =
                           _currentPosition - Duration(seconds: 10);
                       _seekAudio(newPosition < Duration.zero
                           ? Duration.zero
                           : newPosition);
+                    }, isDownloadButton: false),
+                    buildControlButton(Icons.fast_rewind, screenWidth, () {
+                      final newPosition =
+                          _currentPosition + Duration(seconds: 10);
+                      _seekAudio(newPosition < _audioDuration
+                          ? newPosition
+                          : _audioDuration);
                     }, isDownloadButton: false),
                   ],
                 ),
