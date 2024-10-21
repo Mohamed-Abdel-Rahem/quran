@@ -3,6 +3,7 @@ import 'package:quran/screens/developer_.dart';
 import 'package:quran/screens/reader_page.dart';
 import 'package:quran/services/facebok.dart';
 import 'package:quran/services/telegram.dart';
+import 'package:quran/services/tiktok.dart';
 import 'package:quran/services/youtube.dart';
 import 'package:quran/widgets/backgroun_build.dart';
 import 'package:quran/widgets/custom_text_widget.dart';
@@ -135,6 +136,10 @@ class MorePage extends StatelessWidget {
                                       iconPath: 'assets/icons/telegram.png',
                                     ),
                                     iconCreate(
+                                      onPressed: launchTikTok,
+                                      iconPath: 'assets/icons/social-media.png',
+                                    ),
+                                    iconCreate(
                                       onPressed: launchYouTube,
                                       iconPath: 'assets/icons/youtube.png',
                                     ),
@@ -229,11 +234,13 @@ class MorePage extends StatelessWidget {
 
   Widget iconCreate(
       {required VoidCallback onPressed, required String iconPath}) {
-    return IconButton(
-      iconSize: 2,
-      onPressed: onPressed,
-      icon: Image.asset(
-        iconPath,
+    return Expanded(
+      child: IconButton(
+        iconSize: 2,
+        onPressed: onPressed,
+        icon: Image.asset(
+          iconPath,
+        ),
       ),
     );
   }

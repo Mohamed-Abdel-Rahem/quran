@@ -4,6 +4,7 @@ import 'package:quran/screens/sura_play.dart';
 import 'package:quran/widgets/backgroun_build.dart';
 import 'package:quran/widgets/custom_list_tile.dart';
 import 'package:quran/widgets/custom_text_widget.dart';
+import 'package:quran/widgets/scroll.dart';
 
 class QuranPage extends StatefulWidget {
   QuranPage({super.key});
@@ -56,15 +57,13 @@ class _QuranPageState extends State<QuranPage> {
                     ),
                   ),
                 ),
-                const Align(
+                Align(
                   alignment: Alignment.topRight,
                   child: Padding(
-                    padding: EdgeInsets.only(right: 16),
-                    child: CustomTextWidget(
-                      text: 'اذكر الله فبذكره تطمئن القلوب',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    padding: EdgeInsets.only(
+                        right: 16, top: 4), // Slight padding below the greeting
+                    child: buildAnimatedText(
+                        'صدقة جارية علي روح والدة القارئ محمد السمرجي رحمها الله وغفر لها'),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -111,8 +110,19 @@ class _QuranPageState extends State<QuranPage> {
                     ),
                   ],
                 ),
-
-                // const CustomButtonRow(),
+                Padding(
+                  padding: const EdgeInsets.only(
+                      top: 20.0), // Slight padding from search bar
+                  child: Align(
+                    // Center the text
+                    child: CustomTextWidget(
+                      text: 'جزى الله خيرا كل من ساهم في اخراج هذا العمل',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: const Color.fromARGB(255, 180, 177, 177),
+                    ),
+                  ),
+                ),
                 ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),

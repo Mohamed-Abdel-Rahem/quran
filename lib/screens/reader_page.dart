@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:quran/screens/certificatePage.dart';
 
 class ReaderDetailsPage extends StatelessWidget {
   const ReaderDetailsPage({super.key});
@@ -28,6 +31,7 @@ class ReaderDetailsPage extends StatelessWidget {
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w500,
+            fontFamily: 'Tajawal',
           ),
         ),
         centerTitle: true,
@@ -63,7 +67,8 @@ class ReaderDetailsPage extends StatelessWidget {
                 'الاسم / محمد رمضان كمال محمود السمرجي\n'
                 'الشهير ب / محمد السمرجي\n'
                 'ت الميلاد ٢ / ٦ / ١٩٩٦\n'
-                '* ٳمام وخطيب ومدرس بوزارة الأوقاف المصرية وعضو المقرأة النموذجيه بوزارة الأوقاف\n'
+                '* ٳمام وخطيب ومدرس بوزارة الأوقاف المصرية \n'
+                '* عضو المقرأة النموذجيه بوزارة الأوقاف \n'
                 '* موفد وزاارة الأوقاف  لٳحياء ليالي رمضان بدول العالم الاسلامي \n'
                 'حاصل على\n'
                 'المركز الأول على مستوى العالم في المسابقة العالمية للقرآن الكريم 2015\n'
@@ -78,6 +83,26 @@ class ReaderDetailsPage extends StatelessWidget {
                 style: TextStyle(
                     color: Colors.white, fontSize: 25.0, fontFamily: 'Tajawal'),
                 textAlign: TextAlign.right,
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const Certificatepage()),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF032022),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 4),
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                child: const Text('الشهادات'),
               ),
             ],
           ),

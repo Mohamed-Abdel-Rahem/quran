@@ -59,6 +59,9 @@ dependencies:
   flutter_cache_manager: ^3.4.1
   fluttertoast: ^8.2.8
   permission_handler: ^11.3.1
+  marquee: ^2.3.0
+  flutter_staggered_grid_view:
+  insta_image_viewer:
 
 dev_dependencies:
   flutter_test:
@@ -86,6 +89,7 @@ flutter:
     - assets/ellipse/
     - assets/icons/
     - assets/images/
+    - assets/certificat/
   
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
