@@ -1,4 +1,3 @@
-import 'package:device_preview/device_preview.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -12,10 +11,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await Firebase.initializeApp();
-    runApp(DevicePreview(
-        enabled: true,
-        tools: const [...DevicePreview.defaultTools],
-        builder: (context) => const QuranApp()));
+    runApp(const QuranApp());
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
   }
@@ -27,6 +23,7 @@ class QuranApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       builder: EasyLoading.init(),
       locale: const Locale('ar'),
       theme: ThemeData(
