@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:insta_image_viewer/insta_image_viewer.dart';
-import 'package:quran/screens/image_detail.dart';
 
 class Certificatepage extends StatefulWidget {
   const Certificatepage({super.key});
