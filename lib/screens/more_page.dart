@@ -128,19 +128,27 @@ class MorePage extends StatelessWidget {
                                       child: const Text('معرفة المزيد'),
                                     ),
                                     iconCreate(
-                                      onPressed: launchFacebook,
+                                      onPressed: () {
+                                        launchFacebook(context);
+                                      },
                                       iconPath: 'assets/icons/facebook.png',
                                     ),
                                     iconCreate(
-                                      onPressed: launchTelegram,
+                                      onPressed: () {
+                                        launchTelegram(context);
+                                      },
                                       iconPath: 'assets/icons/telegram.png',
                                     ),
                                     iconCreate(
-                                      onPressed: launchTikTok,
+                                      onPressed: () {
+                                        launchTikTok(context);
+                                      },
                                       iconPath: 'assets/icons/social-media.png',
                                     ),
                                     iconCreate(
-                                      onPressed: launchYouTube,
+                                      onPressed: () {
+                                        launchYouTube(context);
+                                      },
                                       iconPath: 'assets/icons/youtube.png',
                                     ),
                                   ],

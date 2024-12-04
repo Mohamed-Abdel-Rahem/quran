@@ -51,60 +51,62 @@ class DeveloperPage extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          SizedBox(height: screenSize.width * 0.1),
-          const Align(
-            alignment: Alignment.topRight,
-            child: CustomTextWidget(
-              text: "تم التطوير والتصميم بواسطة @ محمد عبد الرحيم احمد",
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
+      body: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            SizedBox(height: screenSize.width * 0.1),
+            const Align(
+              alignment: Alignment.topRight,
+              child: CustomTextWidget(
+                text: "تم التطوير والتصميم بواسطة @ محمد عبد الرحيم احمد",
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-          ),
-          SizedBox(height: screenSize.width * 0.2),
-          Column(
-            children: [
-              Padding(
-                padding: EdgeInsets.only(
-                    bottom: screenSize.width * 0.03,
-                    right: screenSize.width * 0.06),
-                child: Row(
-                  children: [
-                    Image.asset(
-                      'assets/images/taw.png',
-                    ),
-                    const Align(
-                      alignment: Alignment.topRight,
-                      child: CustomTextWidget(
-                        text: "للتواصل",
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
+            SizedBox(height: screenSize.width * 0.2),
+            Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(
+                      bottom: screenSize.width * 0.03,
+                      right: screenSize.width * 0.06),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'assets/images/taw.png',
                       ),
-                    ),
-                  ],
+                      const Align(
+                        alignment: Alignment.topRight,
+                        child: CustomTextWidget(
+                          text: "للتواصل",
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              ConnectWidget(
-                onTap: () {
-                  funcOpenMailComposer();
-                }, // your function here
+                ConnectWidget(
+                  onTap: () {
+                    funcOpenMailComposer(context);
+                  }, // your function here
 
-                text: 'mohamedar2002mail@gmail.com',
-                icon: Icons.email,
-              ),
-              SizedBox(height: screenSize.width * 0.06),
-              ConnectWidget(
-                onTap: () {
-                  funcOpenWhatsApp(context);
-                },
-                icon: Icons.call,
-                text: 'Whatsapp and Call : (+20) 01152619144 ',
-              ),
-            ],
-          ),
-        ],
+                  text: 'mohamedar2002mail@gmail.com',
+                  icon: Icons.email,
+                ),
+                SizedBox(height: screenSize.width * 0.06),
+                ConnectWidget(
+                  onTap: () {
+                    funcOpenWhatsApp(context);
+                  },
+                  icon: Icons.call,
+                  text: 'Whatsapp and Call : (+20) 01152619144 ',
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

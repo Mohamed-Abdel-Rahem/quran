@@ -16,36 +16,21 @@ Future<void> funcOpenWhatsApp(BuildContext context) async {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     } else {
-      print('Cannot be launched');
-      // Show an error message to the user, passing the context
-      _showErrorDialog(context,
-          'Cannot open WhatsApp. Please check if WhatsApp is installed.');
+      // If WhatsApp cannot be launched, show a Snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('WhatsApp is not installed on your device.'),
+          duration: Duration(seconds: 3),
+        ),
+      );
     }
   } catch (e) {
-    print('Error launching URL: $e');
-    // Show an error message to the user, passing the context
-    _showErrorDialog(
-        context, 'An error occurred while trying to open WhatsApp.');
+    // Handle any unexpected errors with a Snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('An error occurred while trying to open WhatsApp.'),
+        duration: Duration(seconds: 3),
+      ),
+    );
   }
-}
-
-// Update function to accept BuildContext parameter
-void _showErrorDialog(BuildContext context, String message) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text('Error'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            child: Text('OK'),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
-      );
-    },
-  );
 }
